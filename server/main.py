@@ -2,7 +2,7 @@ import socket
 import threading
 import utils.utils as utils
 
-
+#
 def handle_client(client_socket):
     data = client_socket.recv(1024)
     data = data.decode('utf-8')
@@ -40,6 +40,7 @@ server_socket.listen(5)  # Max 5 pending connections
 print("Server listening on port 12345...")
 
 while True:
+    # make a thread for each client.
     client_socket, addr = server_socket.accept()
     print(f"Accepted connection from {addr}")
     client_handler = threading.Thread(target=handle_client, args=(client_socket,))
