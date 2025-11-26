@@ -2,7 +2,6 @@ import socket
 import threading
 import utils.utils as utils
 
-#
 def handle_client(client_socket):
     data = client_socket.recv(1024)
     data = data.decode('utf-8')

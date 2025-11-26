@@ -30,7 +30,6 @@ class SignupPanel(wx.Panel):
         self.password_error.SetForegroundColour(wx.RED)
         self.sizer.Add(self.password_error, 0, wx.ALL | wx.CENTER, 10)
 
-
         # Password text_ctrl
         self.password_ctrl = wx.TextCtrl(self, value="", style=wx.TE_PASSWORD, size=(200, -1))
         self.password_ctrl.SetHint("Password: ")
@@ -62,7 +61,6 @@ class SignupPanel(wx.Panel):
         if len(password) < 8:
             self.password_error.SetLabel("Password must be at least 8 characters long")
             errors = True
-
 
         if not errors:
             res = self.send_to_server(f"SIGN_UP, {[email, password]}")

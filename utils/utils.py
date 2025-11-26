@@ -48,14 +48,23 @@ class Utils:
         db_cursor.execute(f"""
 SELECT password FROM Users WHERE email = '{email}'
 """)
-        hashed_password = db_cursor.fetchone()[0]
-        conn.commit()
-        conn.close()
+        hashed_password_tup = db_cursor.fetchone()
+        if hashed_password_tup is not None:
+            # Found a user with that email.
+            hashed_password = hashed_password_tup[0]
+            conn.commit()
+            conn.close()
 
-        if bcrypt.checkpw(password.encode(), hashed_password.encode()):
-            return "200"
+            if bcrypt.checkpw(password.encode(), hashed_password.encode()):
+                print("check1")
+                return "200"
+            else:
+                # wrong password
+                print("check2")
+                return "401"
 
-        return "401"
+        print("check3")
+        return "There isn't a user with that email"
 
 
 test = Utils()

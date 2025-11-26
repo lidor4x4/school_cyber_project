@@ -14,9 +14,8 @@ class LoginPanel(wx.Panel):
         self.sizer = wx.BoxSizer(wx.VERTICAL)
         self.sizer.Add(wx.StaticText(self, label="Login"), 0, wx.ALL | wx.CENTER, 10)
 
-        # GOOD MESSAGE
         self.info = wx.StaticText(self, label="")
-        self.info.SetForegroundColour(wx.GREEN)
+        self.info.SetForegroundColour(wx.RED)
         self.sizer.Add(self.info, 0, wx.ALL | wx.CENTER, 10)
 
         # Email error static_text:
@@ -73,3 +72,5 @@ class LoginPanel(wx.Panel):
                 user_name = email.split("@")[0]
                 globals["user_name"] = user_name
                 self.switch_panel("home")
+            else:
+                self.info.SetLabel(res)
