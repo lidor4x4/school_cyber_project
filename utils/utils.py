@@ -1,13 +1,20 @@
 import bcrypt
 import sqlite3
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+from cryptography.fernet import Fernet
+import os
+import base64
 
 
 class Utils:
     global sqlite_file
-    sqlite_file = r"C:\Users\Pc2\Desktop\school_cyber_project-master\DB\final_project_db.sqlite"
+    global fernet
+    sqlite_file = r"C:\Users\lidor\Desktop\school_cyber_project-master\DB\final_project_db.sqlite"
+    FERNET_KEY = b'ZsX3c8oaPpQozRaFVqFn3sDN1eQ0dB08eBlt2hJXqa8='
+    fernet = Fernet(FERNET_KEY)
 
     def createDB(self):
-
         conn = sqlite3.connect(sqlite_file)
         conn.commit()
         conn.close()
@@ -21,6 +28,12 @@ class Utils:
 
         conn.commit()
         conn.close()
+
+    def encrypt_message(self, message):
+        return fernet.encrypt(message.encode())
+
+    def decrypt_message(self, token ):
+        return fernet.decrypt(token).decode()
 
     def handle_signup(self, email, password, username):
         try:
@@ -56,17 +69,14 @@ SELECT password FROM Users WHERE email = '{email}'
             conn.close()
 
             if bcrypt.checkpw(password.encode(), hashed_password.encode()):
-                print("check1")
                 return "200"
             else:
                 # wrong password
-                print("check2")
                 return "401"
 
-        print("check3")
         return "There isn't a user with that email"
 
-    def get_username(email):
+    def get_username(self, email):
         conn = sqlite3.connect(sqlite_file)
         db_cursor = conn.cursor()
 

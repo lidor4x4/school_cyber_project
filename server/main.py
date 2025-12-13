@@ -9,33 +9,37 @@ sys.path.insert(0, root)
 
 import utils.utils as utils
 
+methods = utils.Utils()
+
+
 def handle_client_data(client_socket):
-    data = client_socket.recv(1024).decode('utf-8')
-    if not data:  # If no data, client has closed connection
+    raw_data = client_socket.recv(4096)
+    if not raw_data:
         return False
 
-    methods = utils.Utils()
+    data = methods.decrypt_message(raw_data)
+
 
     if data.startswith("SIGN_UP"):
-        fields = data.split(', ')[1:]  # Remove the 'SIGN_UP,' part and keep the rest
+        fields = data.split(', ')[1:]
         email, password, username = map(str.strip, fields)  # Strip any surrounding spaces
         print(f"Received sign up data: {email}, {password}, {username}")
         response = methods.handle_signup(email, password, username)
         print(f"Sign up response: {response}")
         if response == "200":
-            client_socket.send(f"Sign up was successful!!".encode())
+            client_socket.send(methods.encrypt_message(f"Sign up was successful!!"))
         else:
-            client_socket.send(f"There was an error: {response}".encode())
+            client_socket.send(methods.encrypt_message(f"There was an error: {response}"))
 
     elif data.startswith("LOGIN"):
-        email = data.split("'")[1]
-        password = data.split("'")[3]
+        fields = data.split(", ")[1:]
+        email, password = map(str.strip, fields)
         print(f"Received login data: {email}, {password}")
         response = methods.handle_login(email, password)
         if response == "200":
-            client_socket.send(f"Login was successful!!".encode())
+            client_socket.send(methods.encrypt_message(f"Login was successful!!"))
         else:
-            client_socket.send(f"There was an error: {response}".encode())
+            client_socket.send(methods.encrypt_message(f"There was an error: {response}"))
 
     return True  # Return True to keep the client socket open for further interaction
 

@@ -65,7 +65,7 @@ class LoginPanel(wx.Panel):
             errors = True
 
         if not errors:
-            res = self.send_to_server(f"LOGIN, {email}, {password}, {username}")
+            res = self.send_to_server(f"LOGIN, {email}, {password}")
             if "Login was successful" in res:
                 self.info.SetLabel("Login Successful")
                 globals["auth_state"] = True

@@ -1,5 +1,6 @@
 import wx
 import socket
+import utils.utils as utils
 
 from screens.live_chat_screen import LiveChatPanel
 from screens.login_screen import LoginPanel
@@ -17,8 +18,10 @@ class MainFrame(wx.Frame):
         self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.client_socket.connect((self.HOST, self.PORT))
         self.data = b""
+        self.methods = utils.Utils()
         self.switch_panel("home")
         self.Show()
+
 
     def switch_panel(self, name):
         if self.current_panel:
@@ -35,9 +38,12 @@ class MainFrame(wx.Frame):
 
         self.Layout()
 
-    def send_to_server(self, message: str):
+    def send_to_server(self, message):
         if self.client_socket:
-            self.client_socket.send(message.encode())
-            self.data = self.client_socket.recv(1024)
-            return self.data.decode()
+            encrypted = self.methods.encrypt_message(message)
+            self.client_socket.send(encrypted)
+
+            encrypted_response = self.client_socket.recv(4096)
+            return self.methods.decrypt_message(encrypted_response)
+
         return None
