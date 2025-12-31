@@ -15,21 +15,18 @@ class LiveChatPanel(wx.Panel):
         self.send_to_server = send_to_server
 
         # Video boxes
-        self.self_video = wx.StaticBitmap(self)
-        self.remote_video = wx.StaticBitmap(self)
+        self.self_video = wx.StaticBitmap(self, size=(320, 240))
+        self.remote_video = wx.StaticBitmap(self, size=(320, 240))
         sizer = wx.BoxSizer(wx.HORIZONTAL)
         sizer.Add(self.self_video, 1, wx.EXPAND | wx.ALL, 5)
         sizer.Add(self.remote_video, 1, wx.EXPAND | wx.ALL, 5)
         self.SetSizer(sizer)
 
-        # UDP sockets
-        self.video_udp_send = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.video_udp_recv = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.video_udp_recv.bind(("", 0))
-
-        self.audio_udp_send = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.audio_udp_recv = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.audio_udp_recv.bind(("", 0))
+        # UDP sockets (same socket for send + receive)
+        self.video_udp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.video_udp.bind(("", 0))
+        self.audio_udp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.audio_udp.bind(("", 0))
 
         # Camera
         self.cap = cv2.VideoCapture(0)
@@ -48,28 +45,26 @@ class LiveChatPanel(wx.Panel):
                 continue
             frame = cv2.resize(frame, (320, 240))
             _, buf = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 70])
-            self.video_udp_send.sendto(buf.tobytes(), (SERVER_IP, VIDEO_PORT))
+            self.video_udp.sendto(buf.tobytes(), (SERVER_IP, VIDEO_PORT))
 
-            # Show self video
-            img_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            h, w = img_rgb.shape[:2]
-            bmp = wx.Bitmap.FromBuffer(w, h, img_rgb)
-            wx.CallAfter(self.self_video.SetBitmap, bmp)
+            img = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            h, w = img.shape[:2]
+            bmp = wx.Bitmap.FromBuffer(w, h, img)
+            wx.CallAfter(lambda: [self.self_video.SetBitmap(bmp), self.Layout()])
 
     def receive_video(self):
         while True:
-            data, _ = self.video_udp_recv.recvfrom(65535)
+            data, _ = self.video_udp.recvfrom(65535)
             img = cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_COLOR)
-            img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-            h, w = img_rgb.shape[:2]
-            bmp = wx.Bitmap.FromBuffer(w, h, img_rgb)
-            wx.CallAfter(self.remote_video.SetBitmap, bmp)
+            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+            h, w = img.shape[:2]
+            bmp = wx.Bitmap.FromBuffer(w, h, img)
+            wx.CallAfter(lambda: [self.remote_video.SetBitmap(bmp), self.Layout()])
 
     # ---------------- AUDIO ----------------
     def send_audio(self):
         def callback(indata, frames, time, status):
-            self.audio_udp_send.sendto(indata.tobytes(), (SERVER_IP, AUDIO_PORT))
-
+            self.audio_udp.sendto(indata.tobytes(), (SERVER_IP, AUDIO_PORT))
         with sd.InputStream(channels=1, samplerate=44100, callback=callback):
             while True:
                 sd.sleep(1000)
@@ -78,6 +73,5 @@ class LiveChatPanel(wx.Panel):
         stream = sd.OutputStream(channels=1, samplerate=44100)
         stream.start()
         while True:
-            data, _ = self.audio_udp_recv.recvfrom(4096)
-            audio = np.frombuffer(data, dtype=np.float32)
-            stream.write(audio)
+            data, _ = self.audio_udp.recvfrom(4096)
+            stream.write(np.frombuffer(data, dtype=np.float32))
