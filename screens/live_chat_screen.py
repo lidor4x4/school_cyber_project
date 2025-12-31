@@ -61,14 +61,18 @@ class LiveChatPanel(wx.Panel):
 
     def send_audio(self):
         def callback(indata, frames, time, status):
-            self.audio_udp.sendto(indata.tobytes(), (self.server_ip, AUDIO_PORT))
-        with sd.InputStream(channels=1, samplerate=44100, callback=callback):
+            data_to_send = (indata * 32767).astype(np.int16).tobytes()
+            self.audio_udp.sendto(data_to_send, (self.server_ip, AUDIO_PORT))
+
+        with sd.InputStream(channels=1, samplerate=44100, callback=callback, blocksize=1024):
             while True:
                 sd.sleep(1000)
 
     def receive_audio(self):
-        stream = sd.OutputStream(channels=1, samplerate=44100)
+        stream = sd.OutputStream(channels=1, samplerate=44100, dtype='float32')
         stream.start()
+        
         while True:
             data, _ = self.audio_udp.recvfrom(4096)
-            stream.write(np.frombuffer(data, dtype=np.float32))
+            audio_float32 = np.frombuffer(data, dtype=np.int16).astype(np.float32) / 32767
+            stream.write(audio_float32)
