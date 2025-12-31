@@ -15,14 +15,25 @@ class LiveChatPanel(wx.Panel):
         super().__init__(parent)
         self.server_ip = server_ip
         self.send_to_server = send_to_server
+        self.main_sizer = wx.BoxSizer(wx.VERTICAL)
+
+        self.font = wx.Font(22, wx.DEFAULT, wx.NORMAL, wx.NORMAL, False, "Arial")
+        self.video_screen_text = wx.StaticText(self, label="Video Chat")
+        self.video_screen_text.SetFont(self.font)
+        self.main_sizer.Add(self.video_screen_text, 0, wx.ALL | wx.CENTER, 10)
+
 
         self.self_video = wx.StaticBitmap(self, size=(600, 400))
         self.remote_video = wx.StaticBitmap(self, size=(600, 400))
         sizer = wx.BoxSizer(wx.HORIZONTAL)
         sizer.Add(self.self_video, 1, wx.EXPAND | wx.ALL, 5)
         sizer.Add(self.remote_video, 1, wx.EXPAND | wx.ALL, 5)
-        self.SetSizer(sizer)
- 
+
+        self.main_sizer.Add(sizer, 1, wx.EXPAND | wx.ALL, 5)
+
+        self.SetSizer(self.main_sizer)
+        self.Layout()
+
         self.video_udp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.video_udp.bind(("", 0))
 
