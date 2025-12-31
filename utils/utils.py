@@ -1,7 +1,5 @@
 import bcrypt
 import sqlite3
-from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.fernet import Fernet
 import os
 import base64
@@ -10,7 +8,7 @@ import base64
 class Utils:
     global sqlite_file
     global fernet
-    sqlite_file = r"C:\Users\lidor\Desktop\school_cyber_project-master\DB\final_project_db.sqlite"
+    sqlite_file = r"C:\Users\Pc2\Desktop\school_cyber_project-master\DB\final_project_db.sqlite"
     FERNET_KEY = b'ZsX3c8oaPpQozRaFVqFn3sDN1eQ0dB08eBlt2hJXqa8='
     fernet = Fernet(FERNET_KEY)
 
@@ -80,7 +78,7 @@ SELECT password FROM Users WHERE email = '{email}'
         conn = sqlite3.connect(sqlite_file)
         db_cursor = conn.cursor()
 
-        db_cursor.execute(f"""SELECT username FROM USERS WHERE email = '{email}'""")
+        db_cursor.execute(f"""SELECT username FROM Users WHERE email = '{email}'""")
         username_tup = db_cursor.fetchone()
         if username_tup:
             conn.commit()

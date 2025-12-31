@@ -8,7 +8,7 @@ class SignupPanel(wx.Panel):
     def __init__(self, parent, switch_panel, send_to_server):
         super().__init__(parent)
         self.switch_panel = switch_panel
-        self.send_to_server = send_to_server  # keep your method reference
+        self.send_to_server = send_to_server 
         self.methods = utils.Utils()
 
         # Sizer

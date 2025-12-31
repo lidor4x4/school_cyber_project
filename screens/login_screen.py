@@ -69,7 +69,9 @@ class LoginPanel(wx.Panel):
             if "Login was successful" in res:
                 self.info.SetLabel("Login Successful")
                 globals["auth_state"] = True
-                username = self.methods.get_username(email)
+                username = res.split(",")[1]
+                print(username)
+                print(email)
                 globals["user_name"] = username
                 self.switch_panel("home")
             else:

@@ -1,0 +1,4 @@
+bcrypt
+cryptography
+wxPython
+opencv-python
