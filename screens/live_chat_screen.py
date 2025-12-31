@@ -8,6 +8,7 @@ import sounddevice as sd
 VIDEO_PORT = 12346
 AUDIO_PORT = 12347
 MAX_UDP_SIZE = 65535
+BLOCKSIZE = 2048
 
 class LiveChatPanel(wx.Panel):
     def __init__(self, parent, switch_panel, send_to_server, server_ip):
@@ -59,20 +60,23 @@ class LiveChatPanel(wx.Panel):
             bmp = wx.Bitmap.FromBuffer(w, h, img)
             wx.CallAfter(lambda: [self.remote_video.SetBitmap(bmp), self.Layout()])
 
+
     def send_audio(self):
         def callback(indata, frames, time, status):
+            if indata.shape[0] != BLOCKSIZE:
+                indata = np.pad(indata, ((0,BLOCKSIZE-indata.shape[0]),(0,0)))
             data_to_send = (indata * 32767).astype(np.int16).tobytes()
             self.audio_udp.sendto(data_to_send, (self.server_ip, AUDIO_PORT))
 
-        with sd.InputStream(channels=1, samplerate=44100, callback=callback, blocksize=1024):
+        with sd.InputStream(channels=1, samplerate=44100, callback=callback, blocksize=BLOCKSIZE):
             while True:
                 sd.sleep(1000)
 
     def receive_audio(self):
-        stream = sd.OutputStream(channels=1, samplerate=44100, dtype='float32')
+        stream = sd.OutputStream(channels=1, samplerate=44100, dtype='float32', blocksize=BLOCKSIZE)
         stream.start()
         
         while True:
-            data, _ = self.audio_udp.recvfrom(4096)
-            audio_float32 = np.frombuffer(data, dtype=np.int16).astype(np.float32) / 32767
+            data, _ = self.audio_udp.recvfrom(BLOCKSIZE*2)  # int16 = 2 bytes per sample
+            audio_float32 = np.frombuffer(data, dtype=np.int16).astype(np.float32)/32767
             stream.write(audio_float32)
