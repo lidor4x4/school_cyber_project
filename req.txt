@@ -2,3 +2,4 @@ bcrypt
 cryptography
 wxPython
 opencv-python
+sounddevice

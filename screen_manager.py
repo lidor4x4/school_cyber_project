@@ -13,7 +13,7 @@ class MainFrame(wx.Frame):
     def __init__(self):
         super().__init__(None, title="My App", size=(1900, 1000))
 
-        self.HOST = "localhost"
+        self.HOST = "192.168.3.250"
         self.PORT = 12345
 
         # TCP
