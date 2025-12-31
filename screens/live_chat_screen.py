@@ -15,6 +15,15 @@ class LiveChatPanel(wx.Panel):
         super().__init__(parent)
         self.server_ip = server_ip
         self.send_to_server = send_to_server
+        self.is_video_disabled = False
+        self.is_audio_disabled = False
+ 
+        img = wx.Image("disabled_video_photo.png", wx.BITMAP_TYPE_ANY)
+        img = img.Scale(600, 400, wx.IMAGE_QUALITY_HIGH)
+        self.video_off_bmp = wx.Bitmap(img)
+
+
+
         self.main_sizer = wx.BoxSizer(wx.VERTICAL)
 
         self.font = wx.Font(22, wx.DEFAULT, wx.NORMAL, wx.BOLD, True, "New Times Roman")
@@ -35,10 +44,10 @@ class LiveChatPanel(wx.Panel):
         #self.remote_video = wx.StaticBitmap(self, size=(600, 400))
 
         def disable_video():
-            pass
+            self.is_video_disabled = not self.is_video_disabled
 
         def disable_audio():
-            pass
+            self.is_audio_disabled = not self.is_audio_disabled
 
         self.disable_video_btn = wx.Button(self, label="Disable Video")
         self.disable_audio_btn = wx.Button(self, label="Disable Audio")
@@ -72,19 +81,27 @@ class LiveChatPanel(wx.Panel):
         threading.Thread(target=self.receive_audio, daemon=True).start()
 
     def send_video(self):
-        while True:
-            ret, frame = self.cap.read()
-            if not ret:
-                continue
-            frame = cv2.resize(frame, (600, 400))
-            frame = cv2.flip(frame, 1)
-            _, buf = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 70])
-            self.video_udp.sendto(buf.tobytes(), (self.server_ip, VIDEO_PORT))
+        while True:  # run forever
+            if not self.is_video_disabled:
+                ret, frame = self.cap.read()
+                if not ret:
+                    continue
 
-            img = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            h, w = img.shape[:2]
-            bmp = wx.Bitmap.FromBuffer(w, h, img)
-            wx.CallAfter(lambda: [self.self_video.SetBitmap(bmp), self.Layout()])
+                frame = cv2.resize(frame, (600, 400))
+                frame = cv2.flip(frame, 1)
+
+                _, buf = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 70])
+                self.video_udp.sendto(buf.tobytes(), (self.server_ip, VIDEO_PORT))
+
+                img = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                h, w = img.shape[:2]
+                bmp = wx.Bitmap.FromBuffer(w, h, img)
+                wx.CallAfter(self.self_video.SetBitmap, bmp)
+            else:
+                wx.CallAfter(self.self_video.SetBitmap, self.video_off_bmp)
+
+            # small sleep to prevent high CPU usage
+            cv2.waitKey(30)
 
     def receive_video(self):
         while True:
@@ -93,7 +110,7 @@ class LiveChatPanel(wx.Panel):
             img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
             h, w = img.shape[:2]
             bmp = wx.Bitmap.FromBuffer(w, h, img)
-            wx.CallAfter(lambda: [self.remote_video.SetBitmap(bmp), self.Layout()])
+            wx.CallAfter(lambda: [self.remote_video.SetBitmap(bmp)])
 
 
     def send_audio(self):
