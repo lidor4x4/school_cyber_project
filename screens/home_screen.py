@@ -19,26 +19,23 @@ class HomePanel(wx.Panel):
         self.sizer.Add(self.home_screen_text, 0, wx.ALL | wx.CENTER, 10)
 
         print(self.auth_state)
+        
         def sign_admin(self):
             globals["auth_state"] = True
             globals["user_name"] = "user"
             
-            # Clear the previous sizer contents
             self.sizer.Clear(True)
             
-            # Create and center the "Welcome: ADMIN" label
             self.user_name_static_text = wx.StaticText(self, label=f"Welcome: user")
             self.user_name_static_text.SetFont(self.font)
             self.sizer.Add(self.user_name_static_text, 0, wx.ALL | wx.ALIGN_CENTER, 10)
             
-            # Create and center the "Live Chat" button
             self.live_chat_btn = wx.Button(self, label="Live Chat")
             self.sizer.Add(self.live_chat_btn, 0, wx.ALL | wx.ALIGN_CENTER, 5)
             self.live_chat_btn.Bind(wx.EVT_BUTTON, lambda e: self.switch_panel("live_chat"))
             
-            # Apply the updated sizer
             self.SetSizer(self.sizer)
-            self.Layout()  # Refresh the layout after changes
+            self.Layout()  
 
 
         self.admin_btn = wx.Button(self, label="ADMIN LOGIN")

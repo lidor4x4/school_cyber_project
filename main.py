@@ -4,7 +4,7 @@ from screen_manager import MainFrame
 class MyApp(wx.App):
     def OnInit(self):
         frame = MainFrame()
-        frame.Center()
+        frame.Maximize(True)
         frame.Show()
         return True
 
