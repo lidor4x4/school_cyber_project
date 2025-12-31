@@ -5,13 +5,14 @@ import threading
 import numpy as np
 import sounddevice as sd
 
-SERVER_IP = "localhost"
 VIDEO_PORT = 12346
 AUDIO_PORT = 12347
+MAX_UDP_SIZE = 65535
 
 class LiveChatPanel(wx.Panel):
-    def __init__(self, parent, switch_panel, send_to_server):
+    def __init__(self, parent, switch_panel, send_to_server, server_ip):
         super().__init__(parent)
+        self.server_ip = server_ip
         self.send_to_server = send_to_server
 
         # Video boxes
@@ -22,9 +23,10 @@ class LiveChatPanel(wx.Panel):
         sizer.Add(self.remote_video, 1, wx.EXPAND | wx.ALL, 5)
         self.SetSizer(sizer)
 
-        # UDP sockets (same socket for send + receive)
+        # UDP sockets (same socket for send+receive)
         self.video_udp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.video_udp.bind(("", 0))
+
         self.audio_udp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.audio_udp.bind(("", 0))
 
@@ -45,7 +47,7 @@ class LiveChatPanel(wx.Panel):
                 continue
             frame = cv2.resize(frame, (320, 240))
             _, buf = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 70])
-            self.video_udp.sendto(buf.tobytes(), (SERVER_IP, VIDEO_PORT))
+            self.video_udp.sendto(buf.tobytes(), (self.server_ip, VIDEO_PORT))
 
             img = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             h, w = img.shape[:2]
@@ -54,7 +56,7 @@ class LiveChatPanel(wx.Panel):
 
     def receive_video(self):
         while True:
-            data, _ = self.video_udp.recvfrom(65535)
+            data, _ = self.video_udp.recvfrom(MAX_UDP_SIZE)
             img = cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_COLOR)
             img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
             h, w = img.shape[:2]
@@ -64,7 +66,7 @@ class LiveChatPanel(wx.Panel):
     # ---------------- AUDIO ----------------
     def send_audio(self):
         def callback(indata, frames, time, status):
-            self.audio_udp.sendto(indata.tobytes(), (SERVER_IP, AUDIO_PORT))
+            self.audio_udp.sendto(indata.tobytes(), (self.server_ip, AUDIO_PORT))
         with sd.InputStream(channels=1, samplerate=44100, callback=callback):
             while True:
                 sd.sleep(1000)
