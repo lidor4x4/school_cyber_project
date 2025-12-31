@@ -17,7 +17,7 @@ class LiveChatPanel(wx.Panel):
         self.send_to_server = send_to_server
         self.main_sizer = wx.BoxSizer(wx.VERTICAL)
 
-        self.font = wx.Font(22, wx.DEFAULT, wx.NORMAL, wx.NORMAL, False, "Arial")
+        self.font = wx.Font(22, wx.DEFAULT, wx.NORMAL, wx.BOLD, True, "New Times Roman")
         self.video_screen_text = wx.StaticText(self, label="Video Chat")
         self.video_screen_text.SetFont(self.font)
         self.main_sizer.Add(self.video_screen_text, 0, wx.ALL | wx.CENTER, 10)
@@ -30,6 +30,30 @@ class LiveChatPanel(wx.Panel):
         sizer.Add(self.remote_video, 1, wx.EXPAND | wx.ALL, 5)
 
         self.main_sizer.Add(sizer, 1, wx.EXPAND | wx.ALL, 5)
+
+        #self.self_video = wx.StaticBitmap(self, size=(600, 400))
+        #self.remote_video = wx.StaticBitmap(self, size=(600, 400))
+
+        def disable_video():
+            pass
+
+        def disable_audio():
+            pass
+
+        self.disable_video_btn = wx.Button(self, label="Disable Video")
+        self.disable_audio_btn = wx.Button(self, label="Disable Audio")
+
+        controls_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        controls_sizer.Add(self.disable_video_btn, 1, wx.EXPAND | wx.ALL, 5)
+        controls_sizer.Add(self.disable_audio_btn, 1, wx.EXPAND | wx.ALL, 5)
+
+        self.disable_video_btn.Bind(wx.EVT_BUTTON, lambda e: disable_video())
+        self.disable_audio_btn.Bind(wx.EVT_BUTTON, lambda e: disable_audio())
+
+
+        self.main_sizer.Add(controls_sizer, 1, wx.EXPAND | wx.ALL, 5)
+
+
 
         self.SetSizer(self.main_sizer)
         self.Layout()
