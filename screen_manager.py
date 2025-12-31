@@ -13,16 +13,16 @@ class MainFrame(wx.Frame):
     def __init__(self):
         super().__init__(None, title="My App", size=(1900, 1000))
 
-        self.HOST = "192.168.3.250"
+        self.HOST = "localhost"
         self.PORT = 12345
 
-        # TCP
+        # TCP AUTH
         self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.client_socket.connect((self.HOST, self.PORT))
 
         # UDP CONTROL
         self.udp_control = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.udp_control.bind(("", 0))  # random local port
+        self.udp_control.bind(("", 0))
 
         self.methods = utils.Utils()
         self.current_panel = None
@@ -30,7 +30,6 @@ class MainFrame(wx.Frame):
         self.switch_panel("home")
         self.Show()
 
-    # ---------------- SWITCH PANEL ----------------
     def switch_panel(self, name):
         if self.current_panel:
             self.current_panel.Destroy()
@@ -46,12 +45,7 @@ class MainFrame(wx.Frame):
 
         self.Layout()
 
-    # ---------------- SEND TO SERVER ----------------
     def send_to_server(self, message, fast=False):
-        """
-        fast=False -> TCP (secure / reliable)
-        fast=True  -> UDP CONTROL (low latency)
-        """
         if fast:
             self.udp_control.sendto(message.encode(), (self.HOST, UDP_CONTROL_PORT))
             return None
