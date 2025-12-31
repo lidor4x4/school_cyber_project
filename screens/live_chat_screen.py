@@ -14,7 +14,7 @@ class LiveChatPanel(wx.Panel):
         super().__init__(parent)
         self.send_to_server = send_to_server
 
-        # Video boxes
+    
         self.self_video = wx.StaticBitmap(self)
         self.remote_video = wx.StaticBitmap(self)
         sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -22,7 +22,6 @@ class LiveChatPanel(wx.Panel):
         sizer.Add(self.remote_video, 1, wx.EXPAND | wx.ALL, 5)
         self.SetSizer(sizer)
 
-        # UDP sockets
         self.video_udp_send = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.video_udp_recv = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.video_udp_recv.bind(("", 0))
@@ -31,7 +30,7 @@ class LiveChatPanel(wx.Panel):
         self.audio_udp_recv = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.audio_udp_recv.bind(("", 0))
 
-        # Camera
+        
         self.cap = cv2.VideoCapture(0)
 
         # Threads
