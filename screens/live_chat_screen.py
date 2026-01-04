@@ -22,7 +22,7 @@ class LiveChatPanel(wx.Panel):
         img = img.Scale(600, 400, wx.IMAGE_QUALITY_HIGH)
         self.video_off_bmp = wx.Bitmap(img)
 
-
+        self.times_disabled = 0
 
         self.main_sizer = wx.BoxSizer(wx.VERTICAL)
 
@@ -45,6 +45,7 @@ class LiveChatPanel(wx.Panel):
 
         def disable_video():
             self.is_video_disabled = not self.is_video_disabled
+            self.times_disabled = 0
 
         def disable_audio():
             self.is_audio_disabled = not self.is_audio_disabled
@@ -81,7 +82,7 @@ class LiveChatPanel(wx.Panel):
         threading.Thread(target=self.receive_audio, daemon=True).start()
 
     def send_video(self):
-        while True:  # run forever
+        while True:
             if not self.is_video_disabled:
                 ret, frame = self.cap.read()
                 if not ret:
@@ -97,11 +98,16 @@ class LiveChatPanel(wx.Panel):
                 h, w = img.shape[:2]
                 bmp = wx.Bitmap.FromBuffer(w, h, img)
                 wx.CallAfter(self.self_video.SetBitmap, bmp)
-            else:
-                wx.CallAfter(self.self_video.SetBitmap, self.video_off_bmp)
 
-            # small sleep to prevent high CPU usage
-            cv2.waitKey(30)
+            else:
+                if self.times_disabled == 0:
+                    _, buf = cv2.imencode(".jpg", img, [cv2.IMWRITE_JPEG_QUALITY, 70])
+                    self.video_udp.sendto(buf.tobytes(), (self.server_ip, VIDEO_PORT))
+                    wx.CallAfter(self.self_video.SetBitmap, self.video_off_bmp)
+                    self.times_disabled += 1
+
+
+            # cv2.waitKey(30) should be to prevent high cpu usage maybe not needed.
 
     def receive_video(self):
         while True:

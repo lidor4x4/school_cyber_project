@@ -11,3 +11,4 @@ class Client:
     def send(self, msg):
         self.tcp.send(msg.encode())
         return self.tcp.recv(4096).decode()
+

@@ -22,11 +22,12 @@ class HomePanel(wx.Panel):
         
         def sign_admin(self):
             globals["auth_state"] = True
-            globals["user_name"] = "user"
+            globals["user_name"] = "Eyal Golan"
             
             self.sizer.Clear(True)
             
-            self.user_name_static_text = wx.StaticText(self, label=f"Welcome: user")
+            user_name_admin = globals["user_name"]
+            self.user_name_static_text = wx.StaticText(self, label=f"Welcome: {user_name_admin}")
             self.user_name_static_text.SetFont(self.font)
             self.sizer.Add(self.user_name_static_text, 0, wx.ALL | wx.ALIGN_CENTER, 10)
             
