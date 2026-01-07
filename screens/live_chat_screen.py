@@ -21,17 +21,15 @@ class LiveChatPanel(wx.Panel):
 
         self.is_video_disabled = False
         self.is_audio_disabled = False
-        self.disabled_video_sent = False
 
-        self.image_disable = wx.Image("disabled_video_photo.png", wx.BITMAP_TYPE_ANY)
-        self.image_disable = self.image_disable.Scale(600, 400, wx.IMAGE_QUALITY_HIGH)
-        self.video_off_bmp = wx.Bitmap(self.image_disable)
-
-        self.disabled_np = self.wx_image_to_cv(self.image_disable)
+        image = wx.Image("disabled_video_photo.png", wx.BITMAP_TYPE_ANY)
+        image = image.Scale(600, 400, wx.IMAGE_QUALITY_HIGH)
+        self.video_off_bmp = wx.Bitmap(image)
+        self.disabled_np = self.wx_image_to_cv(image)
 
         self.main_sizer = wx.BoxSizer(wx.VERTICAL)
 
-        font = wx.Font(22, wx.DEFAULT, wx.NORMAL, wx.BOLD, True, "Times New Roman")
+        font = wx.Font(22, wx.DEFAULT, wx.NORMAL, wx.BOLD)
         title = wx.StaticText(self, label="Video Chat")
         title.SetFont(font)
         self.main_sizer.Add(title, 0, wx.ALL | wx.CENTER, 10)
@@ -50,7 +48,6 @@ class LiveChatPanel(wx.Panel):
         btn_sizer = wx.BoxSizer(wx.HORIZONTAL)
         btn_sizer.Add(self.disable_video_btn, 1, wx.EXPAND | wx.ALL, 5)
         btn_sizer.Add(self.disable_audio_btn, 1, wx.EXPAND | wx.ALL, 5)
-
         self.main_sizer.Add(btn_sizer, 0, wx.EXPAND)
 
         self.disable_video_btn.Bind(wx.EVT_BUTTON, self.toggle_video)
@@ -71,26 +68,29 @@ class LiveChatPanel(wx.Panel):
         threading.Thread(target=self.send_audio, daemon=True).start()
         threading.Thread(target=self.receive_audio, daemon=True).start()
 
-
     def wx_image_to_cv(self, wx_img):
         w, h = wx_img.GetWidth(), wx_img.GetHeight()
         data = wx_img.GetData()
         img = np.frombuffer(data, dtype=np.uint8).reshape((h, w, 3))
-        img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
-        return img
-
+        return cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
 
     def toggle_video(self, event):
         self.is_video_disabled = not self.is_video_disabled
-        self.disabled_video_sent = False
+        label = "Enable Video" if self.is_video_disabled else "Disable Video"
+        self.disable_video_btn.SetLabel(label)
 
     def toggle_audio(self, event):
         self.is_audio_disabled = not self.is_audio_disabled
+        label = "Enable Audio" if self.is_audio_disabled else "Disable Audio"
+        self.disable_audio_btn.SetLabel(label)
 
 
     def send_video(self):
         while True:
-            if not self.is_video_disabled:
+            if self.is_video_disabled:
+                frame = self.disabled_np
+                wx.CallAfter(self.self_video.SetBitmap, self.video_off_bmp)
+            else:
                 ret, frame = self.cap.read()
                 if not ret:
                     continue
@@ -98,26 +98,14 @@ class LiveChatPanel(wx.Panel):
                 frame = cv2.resize(frame, (600, 400))
                 frame = cv2.flip(frame, 1)
 
-                _, buf = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 70])
-                self.video_udp.sendto(buf.tobytes(), (self.server_ip, VIDEO_PORT))
-
                 rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                 bmp = wx.Bitmap.FromBuffer(600, 400, rgb)
                 wx.CallAfter(self.self_video.SetBitmap, bmp)
 
-                self.disabled_video_sent = False
+            _, buf = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 70])
+            self.video_udp.sendto(buf.tobytes(), (self.server_ip, VIDEO_PORT))
 
-            else:
-                if not self.disabled_video_sent:
-                    _, buf = cv2.imencode(
-                        ".png",
-                        self.disabled_np,
-                        [cv2.IMWRITE_JPEG_QUALITY, 70]
-                    )
-                    self.video_udp.sendto(buf.tobytes(), (self.server_ip, VIDEO_PORT))
-                    wx.CallAfter(self.self_video.SetBitmap, self.video_off_bmp)
-                    self.disabled_video_sent = True
-
+            time.sleep(0.03)
 
     def receive_video(self):
         while True:
@@ -129,7 +117,6 @@ class LiveChatPanel(wx.Panel):
             rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
             h, w = rgb.shape[:2]
             bmp = wx.Bitmap.FromBuffer(w, h, rgb)
-            time.sleep(0.03)
             wx.CallAfter(self.remote_video.SetBitmap, bmp)
 
 
