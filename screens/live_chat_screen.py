@@ -11,9 +11,6 @@ AUDIO_PORT = 12347
 MAX_UDP_SIZE = 65535
 BLOCKSIZE = 2048
 
-SEND_W, SEND_H = 320, 240     # network size
-SHOW_W, SHOW_H = 600, 400     # screen size
-
 
 class LiveChatPanel(wx.Panel):
     def __init__(self, parent, switch_panel, send_to_server, server_ip):
@@ -25,14 +22,10 @@ class LiveChatPanel(wx.Panel):
         self.is_video_disabled = False
         self.is_audio_disabled = False
 
-        # ---- flicker control ----
-        self.last_self_frame = None
-        self.last_remote_frame = None
-        self.video_disabled_drawn = False
-
         image = wx.Image("disabled_video_photo.png", wx.BITMAP_TYPE_ANY)
-        image = image.Scale(SHOW_W, SHOW_H, wx.IMAGE_QUALITY_HIGH)
+        image = image.Scale(320, 240, wx.IMAGE_QUALITY_HIGH)
         self.video_off_bmp = wx.Bitmap(image)
+        self.disabled_np = self.wx_image_to_cv(image)
 
         self.main_sizer = wx.BoxSizer(wx.VERTICAL)
 
@@ -41,12 +34,12 @@ class LiveChatPanel(wx.Panel):
         title.SetFont(font)
         self.main_sizer.Add(title, 0, wx.ALL | wx.CENTER, 10)
 
-        self.main_sizer.AddSpacer(80)
+        self.main_sizer.AddSpacer(100)
 
         video_container = wx.BoxSizer(wx.HORIZONTAL)
 
-        self.self_video = wx.StaticBitmap(self, size=(SHOW_W, SHOW_H))
-        self.remote_video = wx.StaticBitmap(self, size=(SHOW_W, SHOW_H))
+        self.self_video = wx.StaticBitmap(self, size=(320, 240))
+        self.remote_video = wx.StaticBitmap(self, size=(320, 240))
 
         video_container.Add(self.self_video, 1, wx.EXPAND | wx.ALL, 5)
         video_container.Add(self.remote_video, 1, wx.EXPAND | wx.ALL, 5)
@@ -80,6 +73,12 @@ class LiveChatPanel(wx.Panel):
         threading.Thread(target=self.send_audio, daemon=True).start()
         threading.Thread(target=self.receive_audio, daemon=True).start()
 
+    def wx_image_to_cv(self, wx_img):
+        w, h = wx_img.GetWidth(), wx_img.GetHeight()
+        data = wx_img.GetData()
+        img = np.frombuffer(data, dtype=np.uint8).reshape((h, w, 3))
+        return cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+
     def toggle_video(self, event):
         self.is_video_disabled = not self.is_video_disabled
         self.disable_video_btn.SetLabel(
@@ -92,58 +91,42 @@ class LiveChatPanel(wx.Panel):
             "Enable Audio" if self.is_audio_disabled else "Disable Audio"
         )
 
-    # ---------------- VIDEO ----------------
-
     def send_video(self):
         while True:
             if self.is_video_disabled:
-                if not self.video_disabled_drawn:
-                    wx.CallAfter(self.self_video.SetBitmap, self.video_off_bmp)
-                    self.video_disabled_drawn = True
+                wx.CallAfter(self.self_video.SetBitmap, self.video_off_bmp)
                 time.sleep(0.1)
                 continue
-
-            self.video_disabled_drawn = False
 
             ret, frame = self.cap.read()
             if not ret:
                 continue
 
+            frame = cv2.resize(frame, (320, 240))
             frame = cv2.flip(frame, 1)
 
-            # ---- SEND SMALL FRAME ----
-            send_frame = cv2.resize(frame, (SEND_W, SEND_H))
-            _, buf = cv2.imencode(".jpg", send_frame, [cv2.IMWRITE_JPEG_QUALITY, 50])
+            rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            bmp = wx.Bitmap.FromBuffer(320, 240, rgb)
+            wx.CallAfter(self.self_video.SetBitmap, bmp)
+
+            _, buf = cv2.imencode(
+                ".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 50]
+            )
             self.video_udp.sendto(buf.tobytes(), (self.server_ip, VIDEO_PORT))
-
-            # ---- DISPLAY BIG FRAME ----
-            display = cv2.resize(frame, (SHOW_W, SHOW_H))
-            rgb = cv2.cvtColor(display, cv2.COLOR_BGR2RGB)
-
-            if self.last_self_frame is None or not np.array_equal(rgb, self.last_self_frame):
-                bmp = wx.Bitmap.FromBuffer(SHOW_W, SHOW_H, rgb)
-                wx.CallAfter(self.self_video.SetBitmap, bmp)
-                self.last_self_frame = rgb.copy()
 
             time.sleep(0.03)
 
     def receive_video(self):
         while True:
             data, _ = self.video_udp.recvfrom(MAX_UDP_SIZE)
-
             img = cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_COLOR)
-            if img is None or img.shape[:2] != (SEND_H, SEND_W):
+            if img is None:
                 continue
 
-            display = cv2.resize(img, (SHOW_W, SHOW_H))
-            rgb = cv2.cvtColor(display, cv2.COLOR_BGR2RGB)
-
-            if self.last_remote_frame is None or not np.array_equal(rgb, self.last_remote_frame):
-                bmp = wx.Bitmap.FromBuffer(SHOW_W, SHOW_H, rgb)
-                wx.CallAfter(self.remote_video.SetBitmap, bmp)
-                self.last_remote_frame = rgb.copy()
-
-    # ---------------- AUDIO ----------------
+            rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+            h, w = rgb.shape[:2]
+            bmp = wx.Bitmap.FromBuffer(w, h, rgb)
+            wx.CallAfter(self.remote_video.SetBitmap, bmp)
 
     def send_audio(self):
         def callback(indata, frames, time_info, status):
