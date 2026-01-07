@@ -29,31 +29,46 @@ class LiveChatPanel(wx.Panel):
 
         self.main_sizer = wx.BoxSizer(wx.VERTICAL)
 
-        font = wx.Font(22, wx.DEFAULT, wx.NORMAL, wx.BOLD)
+        font = wx.Font(55, wx.DEFAULT, wx.NORMAL, wx.BOLD, underline=True)  
         title = wx.StaticText(self, label="Video Chat")
         title.SetFont(font)
         self.main_sizer.Add(title, 0, wx.ALL | wx.CENTER, 10)
 
-        self.self_video = wx.StaticBitmap(self, size=(600, 400))
-        self.remote_video = wx.StaticBitmap(self, size=(600, 400))
+        self.main_sizer.AddSpacer(200)  
 
-        video_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        video_sizer.Add(self.self_video, 1, wx.EXPAND | wx.ALL, 5)
-        video_sizer.Add(self.remote_video, 1, wx.EXPAND | wx.ALL, 5)
-        self.main_sizer.Add(video_sizer, 1, wx.EXPAND)
+        video_container = wx.BoxSizer(wx.HORIZONTAL)
+
+        video_container.AddSpacer(50)
+
+        self.self_video = wx.StaticBitmap(self, size=(600, 400))
+        video_container.Add(self.self_video, 1, wx.EXPAND | wx.ALL, 5)
+
+        self.remote_video = wx.StaticBitmap(self, size=(600, 400))
+        video_container.Add(self.remote_video, 1, wx.EXPAND | wx.ALL, 5)
+
+        video_container.AddSpacer(50)
+
+        self.main_sizer.Add(video_container, 1, wx.CENTER | wx.EXPAND)
+
+        self.main_sizer.AddSpacer(30)
+
+        btn_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
         self.disable_video_btn = wx.Button(self, label="Disable Video")
         self.disable_audio_btn = wx.Button(self, label="Disable Audio")
 
-        btn_sizer = wx.BoxSizer(wx.HORIZONTAL)
         btn_sizer.Add(self.disable_video_btn, 1, wx.EXPAND | wx.ALL, 5)
         btn_sizer.Add(self.disable_audio_btn, 1, wx.EXPAND | wx.ALL, 5)
+
         self.main_sizer.Add(btn_sizer, 0, wx.EXPAND)
+
 
         self.disable_video_btn.Bind(wx.EVT_BUTTON, self.toggle_video)
         self.disable_audio_btn.Bind(wx.EVT_BUTTON, self.toggle_audio)
 
+
         self.SetSizer(self.main_sizer)
+
 
         self.video_udp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.video_udp.bind(("", 0))
@@ -83,7 +98,6 @@ class LiveChatPanel(wx.Panel):
         self.is_audio_disabled = not self.is_audio_disabled
         label = "Enable Audio" if self.is_audio_disabled else "Disable Audio"
         self.disable_audio_btn.SetLabel(label)
-
 
     def send_video(self):
         while True:
@@ -118,7 +132,6 @@ class LiveChatPanel(wx.Panel):
             h, w = rgb.shape[:2]
             bmp = wx.Bitmap.FromBuffer(w, h, rgb)
             wx.CallAfter(self.remote_video.SetBitmap, bmp)
-
 
     def send_audio(self):
         def callback(indata, frames, time_info, status):
