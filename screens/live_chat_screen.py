@@ -4,6 +4,7 @@ import socket
 import threading
 import numpy as np
 import sounddevice as sd
+import time
 
 VIDEO_PORT = 12346
 AUDIO_PORT = 12347
@@ -109,7 +110,7 @@ class LiveChatPanel(wx.Panel):
             else:
                 if not self.disabled_video_sent:
                     _, buf = cv2.imencode(
-                        ".jpg",
+                        ".png",
                         self.disabled_np,
                         [cv2.IMWRITE_JPEG_QUALITY, 70]
                     )
@@ -128,6 +129,7 @@ class LiveChatPanel(wx.Panel):
             rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
             h, w = rgb.shape[:2]
             bmp = wx.Bitmap.FromBuffer(w, h, rgb)
+            time.sleep(0.03)
             wx.CallAfter(self.remote_video.SetBitmap, bmp)
 
 
