@@ -23,28 +23,34 @@ class LiveChatPanel(wx.Panel):
         self.is_audio_disabled = False
 
         image = wx.Image("disabled_video_photo.png", wx.BITMAP_TYPE_ANY)
-        image = image.Scale(320, 240, wx.IMAGE_QUALITY_HIGH)
+        image = image.Scale(600, 400, wx.IMAGE_QUALITY_HIGH)
         self.video_off_bmp = wx.Bitmap(image)
         self.disabled_np = self.wx_image_to_cv(image)
 
         self.main_sizer = wx.BoxSizer(wx.VERTICAL)
 
-        font = wx.Font(55, wx.DEFAULT, wx.NORMAL, wx.BOLD, underline=True)
+        font = wx.Font(55, wx.DEFAULT, wx.NORMAL, wx.BOLD, underline=True)  
         title = wx.StaticText(self, label="Video Chat")
         title.SetFont(font)
         self.main_sizer.Add(title, 0, wx.ALL | wx.CENTER, 10)
 
-        self.main_sizer.AddSpacer(100)
+        self.main_sizer.AddSpacer(200)  
 
         video_container = wx.BoxSizer(wx.HORIZONTAL)
 
-        self.self_video = wx.StaticBitmap(self, size=(320, 240))
-        self.remote_video = wx.StaticBitmap(self, size=(320, 240))
+        video_container.AddSpacer(50)
 
+        self.self_video = wx.StaticBitmap(self, size=(600, 400))
         video_container.Add(self.self_video, 1, wx.EXPAND | wx.ALL, 5)
+
+        self.remote_video = wx.StaticBitmap(self, size=(600, 400))
         video_container.Add(self.remote_video, 1, wx.EXPAND | wx.ALL, 5)
 
+        video_container.AddSpacer(50)
+
         self.main_sizer.Add(video_container, 1, wx.CENTER | wx.EXPAND)
+
+        self.main_sizer.AddSpacer(30)
 
         btn_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
@@ -55,10 +61,14 @@ class LiveChatPanel(wx.Panel):
         btn_sizer.Add(self.disable_audio_btn, 1, wx.EXPAND | wx.ALL, 5)
 
         self.main_sizer.Add(btn_sizer, 0, wx.EXPAND)
-        self.SetSizer(self.main_sizer)
+
 
         self.disable_video_btn.Bind(wx.EVT_BUTTON, self.toggle_video)
         self.disable_audio_btn.Bind(wx.EVT_BUTTON, self.toggle_audio)
+
+
+        self.SetSizer(self.main_sizer)
+
 
         self.video_udp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.video_udp.bind(("", 0))
@@ -81,37 +91,32 @@ class LiveChatPanel(wx.Panel):
 
     def toggle_video(self, event):
         self.is_video_disabled = not self.is_video_disabled
-        self.disable_video_btn.SetLabel(
-            "Enable Video" if self.is_video_disabled else "Disable Video"
-        )
+        label = "Enable Video" if self.is_video_disabled else "Disable Video"
+        self.disable_video_btn.SetLabel(label)
 
     def toggle_audio(self, event):
         self.is_audio_disabled = not self.is_audio_disabled
-        self.disable_audio_btn.SetLabel(
-            "Enable Audio" if self.is_audio_disabled else "Disable Audio"
-        )
+        label = "Enable Audio" if self.is_audio_disabled else "Disable Audio"
+        self.disable_audio_btn.SetLabel(label)
 
     def send_video(self):
         while True:
             if self.is_video_disabled:
+                frame = self.disabled_np
                 wx.CallAfter(self.self_video.SetBitmap, self.video_off_bmp)
-                time.sleep(0.1)
-                continue
+            else:
+                ret, frame = self.cap.read()
+                if not ret:
+                    continue
 
-            ret, frame = self.cap.read()
-            if not ret:
-                continue
+                frame = cv2.resize(frame, (600, 400))
+                frame = cv2.flip(frame, 1)
 
-            frame = cv2.resize(frame, (320, 240))
-            frame = cv2.flip(frame, 1)
+                rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                bmp = wx.Bitmap.FromBuffer(600, 400, rgb)
+                wx.CallAfter(self.self_video.SetBitmap, bmp)
 
-            rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            bmp = wx.Bitmap.FromBuffer(320, 240, rgb)
-            wx.CallAfter(self.self_video.SetBitmap, bmp)
-
-            _, buf = cv2.imencode(
-                ".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 50]
-            )
+            _, buf = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 70])
             self.video_udp.sendto(buf.tobytes(), (self.server_ip, VIDEO_PORT))
 
             time.sleep(0.03)
