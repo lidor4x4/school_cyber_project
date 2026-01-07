@@ -1,5 +1,13 @@
 import socket
 import threading
+import select
+import sys
+import os
+
+root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, root)
+
+import utils.utils as utils
 
 TCP_PORT = 12345
 VIDEO_PORT = 12346
@@ -7,16 +15,68 @@ AUDIO_PORT = 12347
 
 video_clients = []
 audio_clients = []
+methods = utils.Utils()
 
 def tcp_server():
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.bind(("0.0.0.0", TCP_PORT))
-    s.listen()
+    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    server.bind(("0.0.0.0", TCP_PORT))
+    server.listen()
+    server.setblocking(False)
+
+    sockets = [server]
+
     print("TCP AUTH server running on port", TCP_PORT)
 
     while True:
-        client, addr = s.accept()
-        print("TCP connected:", addr)
+        readable, _, _ = select.select(sockets, [], [])
+
+        for sock in readable:
+            if sock is server:
+                client, addr = server.accept()
+                client.setblocking(False)
+                sockets.append(client)
+                print("TCP connected:", addr)
+
+            else:
+                try:
+                    data = sock.recv(1024)
+                    if not data:
+                        sockets.remove(sock)
+                        sock.close()
+                        continue
+
+                    msg = data.decode().strip()
+                    print("Received:", msg)
+
+                    if data.startswith("SIGN_UP"):
+                        fields = data.split(', ')[1:]  # Remove the 'SIGN_UP,' part and keep the rest
+                        email, password, username = map(str.strip, fields)  # Strip any surrounding spaces
+                        print(f"Received sign up data: {email}, {password}, {username}")
+                        response = methods.handle_signup(email, password, username)
+                        print(f"Sign up response: {response}")
+                        if response == "200":
+                            sock.send(f"Sign up was successful!!".encode())
+                        else:
+                            sock.send(f"There was an error: {response}".encode())
+
+                    elif data.startswith("LOGIN"):
+                        email = data.split("'")[1]
+                        password = data.split("'")[3]
+                        print(f"Received login data: {email}, {password}")
+                        response = methods.handle_login(email, password)
+                        if response == "200":
+                            sock.send(f"Login was successful!!".encode())
+                        else:
+                            sock.send(f"There was an error: {response}".encode())
+
+
+                except Exception as e:
+                    print("TCP error:", e)
+                    sockets.remove(sock)
+                    sock.close()
+
+
 
 def udp_relay(port, client_list):
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -33,11 +93,14 @@ def udp_relay(port, client_list):
             if client != addr:
                 sock.sendto(data, client)
 
+
+
 if __name__ == "__main__":
     threading.Thread(target=tcp_server, daemon=True).start()
     threading.Thread(target=udp_relay, args=(VIDEO_PORT, video_clients), daemon=True).start()
     threading.Thread(target=udp_relay, args=(AUDIO_PORT, audio_clients), daemon=True).start()
 
     print("SERVER READY")
+
     while True:
         pass
