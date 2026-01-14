@@ -9,7 +9,7 @@ class Utils:
     global sqlite_file
     global fernet
     sqlite_file = r"C:\Users\Pc2\Desktop\school_cyber_project\DB\final_project_db.sqlite"
-    FERNET_KEY = b'ZsX3c8oaPpQozRaFVqFn3sDN1eQ0dB08eBlt2hJXqa8='
+    FERNET_KEY = b'WmNayxAvMomFuoWRSyEtFaHhptS-nrodlSnZsvHpeoI='
     fernet = Fernet(FERNET_KEY)
 
     def createDB(self):
@@ -30,8 +30,8 @@ class Utils:
     def encrypt_message(self, message):
         return fernet.encrypt(message.encode())
 
-    def decrypt_message(self, token ):
-        return fernet.decrypt(token).decode()
+    def decrypt_message(self, message):
+        return fernet.decrypt(message).decode()
 
     def handle_signup(self, email, password, username):
         try:

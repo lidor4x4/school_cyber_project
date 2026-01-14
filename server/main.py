@@ -46,8 +46,8 @@ def tcp_server():
                         sock.close()
                         continue
 
-                    msg = data.decode().strip()
-                    print("Received:", msg)
+                    data = methods.decrypt_message(data)
+                    print("Received:", data)
 
                     if data.startswith("SIGN_UP"):
                         fields = data.split(', ')[1:]  # Remove the 'SIGN_UP,' part and keep the rest
@@ -56,19 +56,22 @@ def tcp_server():
                         response = methods.handle_signup(email, password, username)
                         print(f"Sign up response: {response}")
                         if response == "200":
-                            sock.send(f"Sign up was successful!!".encode())
+                            sock.send(methods.encrypt_message(f"Sign up was successful!!"))
                         else:
-                            sock.send(f"There was an error: {response}".encode())
+                            sock.send(methods.encrypt_message(f"There was an error: {response}"))
 
                     elif data.startswith("LOGIN"):
-                        email = data.split("'")[1]
-                        password = data.split("'")[3]
+                        fields = [x.strip() for x in data.split(',')]
+
+                        email = fields[1]         
+                        password = fields[2]    
                         print(f"Received login data: {email}, {password}")
                         response = methods.handle_login(email, password)
+                        username_login = methods.get_username(email)
                         if response == "200":
-                            sock.send(f"Login was successful!!".encode())
+                            sock.send(methods.encrypt_message(f"Login was successful!!, {username_login}"))
                         else:
-                            sock.send(f"There was an error: {response}".encode())
+                            sock.send(methods.encrypt_message(f"There was an error: {response}"))
 
 
                 except Exception as e:

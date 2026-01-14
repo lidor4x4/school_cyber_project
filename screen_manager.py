@@ -14,8 +14,8 @@ class MainFrame(wx.Frame):
     def __init__(self):
         super().__init__(None, title="My App", size=(1280, 720))
 
-        self.HOST = "localhost"  
-        #self.HOST = "192.168.3.216"  
+        #self.HOST = "localhost"  
+        self.HOST = "192.168.3.216"  
         self.PORT = 12345
 
         self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -43,7 +43,8 @@ class MainFrame(wx.Frame):
         self.Layout()
 
     def send_to_server(self, message):
-        encrypted = self.methods.encrypt_message(message)
+        encrypted = self.methods.encrypt_message(message)  # bytes
         self.client_socket.send(encrypted)
-        response = self.client_socket.recv(4096)
-        return self.methods.decrypt_message(response)
+
+        response = self.client_socket.recv(4096)          # bytes
+        return self.methods.decrypt_message(response)     # pass bytes directly
