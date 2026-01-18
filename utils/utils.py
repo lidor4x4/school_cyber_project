@@ -33,7 +33,7 @@ class Utils:
     def decrypt_message(self, message):
         return fernet.decrypt(message).decode()
 
-    def handle_signup(self, email, password, username):
+    def handle_signup(self, email, password, username, user_type):
         try:
             bytes = password.encode('utf-8')
             salt = bcrypt.gensalt()
@@ -42,8 +42,8 @@ class Utils:
 
             conn = sqlite3.connect(sqlite_file)
             db_cursor = conn.cursor()
-            db_cursor.execute("""INSERT INTO Users (email, password, username)
-    VALUES (?, ?, ?);""", (email, str(hashed_password.decode()), username))
+            db_cursor.execute("""INSERT INTO Users (email, password, username, role)
+    VALUES (?, ?, ?, ?);""", (email, str(hashed_password.decode()), username, user_type))
 
             conn.commit()
             conn.close()

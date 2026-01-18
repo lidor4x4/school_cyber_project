@@ -55,6 +55,16 @@ class SignupPanel(wx.Panel):
         self.confirm_password_ctrl.SetHint("Confirm password: ")
         self.sizer.Add(self.confirm_password_ctrl, 0, wx.ALL | wx.CENTER, 10)
 
+        # selection check error static_text:
+        self.slection_error = wx.StaticText(self, label="")
+        self.slection_error.SetForegroundColour(wx.RED)
+        self.sizer.Add(self.slection_error, 0, wx.ALL | wx.CENTER, 10)
+
+        self.chk_patient = wx.CheckBox(self, label="I'm a patient")
+        self.chk_dr = wx.CheckBox(self, label="I'm a doctor")
+
+        self.sizer.Add(self.chk_patient, 0, wx.ALL | wx.CENTER, 5)
+        self.sizer.Add(self.chk_dr, 0, wx.ALL | wx.CENTER, 5)
 
         # Buttons
         self.signup_btn = wx.Button(self, label="Signup")
@@ -88,9 +98,21 @@ class SignupPanel(wx.Panel):
 
         if password != confirm_password:
             self.confirm_password_error.SetLabel("The two passwords should be the same.")
+            errors = True
+
+        if self.chk_dr.IsChecked() and self.chk_patient.IsChecked():
+            self.slection_error.SetLabel("You can't be both its not your gender")
+            errors = True
+
+
 
         if not errors:
-            res = self.send_to_server(f"SIGN_UP, {email}, {password}, {username}")
+            selected = ""
+            if self.chk_patient.IsChecked(): 
+                selected = "patient"
+            if self.chk_dr.IsChecked(): 
+                selected = "dr"
+            res = self.send_to_server(f"SIGN_UP, {email}, {password}, {username}, {selected}")
             if "successful" in res:
                 globals["auth_state"] = True
                 globals["user_name"] = username
