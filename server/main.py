@@ -51,7 +51,7 @@ def tcp_server():
 
                     if data.startswith("SIGN_UP"):
                         fields = data.split(', ')[1:]  # Remove the 'SIGN_UP,' part and keep the rest
-                        email, password, username, user_type = map(str.strip, fields)  # Strip any surrounding spaces
+                        email, password, username, user_type = map(str.strip, fields)  # remoe spaces and assign each var 
                         print(f"Received sign up data: {email}, {password}, {username}, {user_type}")
                         response = methods.handle_signup(email, password, username, user_type)
                         print(f"Sign up response: {response}")

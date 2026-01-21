@@ -3,6 +3,7 @@ import sqlite3
 from cryptography.fernet import Fernet
 import os
 import base64
+from globals import globals
 
 
 class Utils:
@@ -33,20 +34,24 @@ class Utils:
     def decrypt_message(self, message):
         return fernet.decrypt(message).decode()
 
-    def handle_signup(self, email, password, username, user_type):
+    def handle_signup(self, email, password, username, user_type): 
         try:
             bytes = password.encode('utf-8')
             salt = bcrypt.gensalt()
-
+            verified = True
             hashed_password = bcrypt.hashpw(bytes, salt)
-
+            if user_type == "dr":
+                verified = False
             conn = sqlite3.connect(sqlite_file)
             db_cursor = conn.cursor()
-            db_cursor.execute("""INSERT INTO Users (email, password, username, role)
-    VALUES (?, ?, ?, ?);""", (email, str(hashed_password.decode()), username, user_type))
+            db_cursor.execute("""INSERT INTO Users (email, password, username, role, verified)
+    VALUES (?, ?, ?, ?, ?);""", (email, str(hashed_password.decode()), username, user_type, verified))
 
             conn.commit()
             conn.close()
+
+            
+
             return "200"
 
         except Exception as e :
@@ -84,6 +89,68 @@ SELECT password FROM Users WHERE email = '{email}'
             conn.commit()
             conn.close()
             return username_tup[0]
+
+    def get_email_by_username(self, username):
+        conn = sqlite3.connect(sqlite_file)
+        db_cursor = conn.cursor()
+
+        db_cursor.execute(f"""SELECT email FROM Users WHERE username = '{username}'""")
+        email_tup = db_cursor.fetchone()
+        if email_tup:
+            conn.commit()
+            conn.close()
+            return email_tup[0]
+
+    def get_verified_by_username(self, username):
+        conn = sqlite3.connect(sqlite_file)
+        db_cursor = conn.cursor()
+
+        db_cursor.execute(f"""SELECT verified FROM Users WHERE username = '{username}'""")
+        verified_tup = db_cursor.fetchone()
+        if verified_tup:
+            conn.commit()
+            conn.close()
+            return verified_tup[0]
+
+    def get_unverified_users(self):
+        try:
+            conn = sqlite3.connect(sqlite_file)
+            cursor = conn.cursor()
+
+            cursor.execute("""SELECT email FROM Users WHERE verified = 0 AND (rejected IS NULL OR rejected = 0)""")
+
+            emails = [row[0] for row in cursor.fetchall()]
+            conn.close()
+            return emails
+
+        except Exception as e:
+            print(f"Error fetching unverified users: {e}")
+            return []
+
+    def verify_user(self, email,verify):
+        try:
+            conn = sqlite3.connect(sqlite_file)
+            cursor = conn.cursor()
+            cursor.execute("UPDATE Users SET verified = ? WHERE email = ?", (1 if verify else 0, email))
+            conn.commit()
+            conn.close()
+        except Exception as e:
+            print(f"Error verifying user {email}: {e}")
+
+
+    def reject_user(self, email):
+        try:
+            conn = sqlite3.connect(sqlite_file) 
+            cursor = conn.cursor()
+            cursor.execute("UPDATE Users SET rejected = 1 WHERE email = ?",(email,))
+            conn.commit()
+            conn.close()
+            print(f"User {email} marked as rejected.")
+        except Exception as e:
+            print(f"Error rejecting user {email}: {e}")
+
+    
+
 
 test = Utils()
 # test.createDB()

@@ -1,7 +1,8 @@
 globals = {
     "auth_state": False,
     "user_name": "",
-    "users_in_call" : []
+    "user_role" : "",
+    "is_admin" : False
 }
 
 

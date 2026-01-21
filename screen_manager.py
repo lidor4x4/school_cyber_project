@@ -6,6 +6,8 @@ from screens.live_chat_screen import LiveChatPanel
 from screens.login_screen import LoginPanel
 from screens.signup_screen import SignupPanel
 from screens.home_screen import HomePanel
+from screens.verify_doctor_screen import VerifyDoctorPanel
+from screens.waiting_room_screen import WaitingRoomPanel
 
 VIDEO_PORT = 12346
 AUDIO_PORT = 12347
@@ -39,6 +41,10 @@ class MainFrame(wx.Frame):
             self.current_panel = HomePanel(self, self.switch_panel, self.send_to_server)
         elif name == "live_chat":
             self.current_panel = LiveChatPanel(self, self.switch_panel, self.send_to_server, self.HOST)
+        elif name == "verify_doctor_screen":
+            self.current_panel = VerifyDoctorPanel(self, self.switch_panel, self.send_to_server)
+        elif name == "waiting_room":
+            self.current_panel = WaitingRoomPanel(self, self.switch_panel, self.send_to_server)
 
         self.Layout()
 

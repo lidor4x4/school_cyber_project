@@ -101,10 +101,8 @@ class SignupPanel(wx.Panel):
             errors = True
 
         if self.chk_dr.IsChecked() and self.chk_patient.IsChecked():
-            self.slection_error.SetLabel("You can't be both its not your gender")
+            self.slection_error.SetLabel("You must choose one user type")
             errors = True
-
-
 
         if not errors:
             selected = ""
@@ -116,4 +114,5 @@ class SignupPanel(wx.Panel):
             if "successful" in res:
                 globals["auth_state"] = True
                 globals["user_name"] = username
+                globals["user_role"] = selected
                 self.switch_panel("home")
