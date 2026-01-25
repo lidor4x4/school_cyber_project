@@ -94,7 +94,7 @@ SELECT password FROM Users WHERE email = '{email}'
         conn = sqlite3.connect(sqlite_file)
         db_cursor = conn.cursor()
 
-        db_cursor.execute(f"""SELECT email FROM Users WHERE username = '{username}'""")
+        db_cursor.execute("SELECT email FROM Users WHERE username=?", (username,))
         email_tup = db_cursor.fetchone()
         if email_tup:
             conn.commit()
@@ -104,9 +104,10 @@ SELECT password FROM Users WHERE email = '{email}'
     def get_verified_by_username(self, username):
         conn = sqlite3.connect(sqlite_file)
         db_cursor = conn.cursor()
-
-        db_cursor.execute(f"""SELECT verified FROM Users WHERE username = '{username}'""")
+        print("name", username)
+        db_cursor.execute("SELECT verified FROM Users WHERE username=?", (username,))
         verified_tup = db_cursor.fetchone()
+        print("[meri", verified_tup)
         if verified_tup:
             conn.commit()
             conn.close()
@@ -149,7 +150,22 @@ SELECT password FROM Users WHERE email = '{email}'
         except Exception as e:
             print(f"Error rejecting user {email}: {e}")
 
-    
+    def get_role_by_email(self, email):
+        try:
+            conn = sqlite3.connect(sqlite_file) 
+            cursor = conn.cursor()
+            cursor.execute("SELECT role FROM Users WHERE email = ?",(email,))
+            role_tup = cursor.fetchone()
+            if role_tup:
+                conn.commit()
+                conn.close()
+                return role_tup[0]
+        
+        except Exception as e:
+            print(f"Error fetching user role: {e}")
+            return 
+
+
 
 
 test = Utils()

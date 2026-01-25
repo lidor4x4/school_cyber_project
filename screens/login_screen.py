@@ -73,7 +73,7 @@ class LoginPanel(wx.Panel):
                 print(username)
                 print(email)
                 globals["user_name"] = username
-                globals["user_role"] = self.methods.get_role_by_id()
+                globals["user_role"] = self.methods.get_role_by_email(email)
                 self.switch_panel("home")
             else:
                 self.info.SetLabel(res)
