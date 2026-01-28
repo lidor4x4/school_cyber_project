@@ -72,6 +72,9 @@ def tcp_server():
                             sock.send(methods.encrypt_message(f"Login was successful!!, {username_login}"))
                         else:
                             sock.send(methods.encrypt_message(f"There was an error: {response}"))
+                    
+                    elif data.startswith("VERIFY"):
+                        return methods.get_verified_by_username(data.split(",")[-1])
 
 
                 except Exception as e:
