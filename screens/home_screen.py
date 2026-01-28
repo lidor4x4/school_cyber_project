@@ -46,7 +46,6 @@ class HomePanel(wx.Panel):
 
             # If the user is a doctor
             elif self.user_role == "dr":
-                print("joules", self.methods.get_verified_by_username(user_name))
                 if not self.methods.get_verified_by_username(user_name):
                     self.not_verified_text = wx.StaticText(self, label=f"{user_name}, you aren't verified yet.")
                     self.not_verified_text.SetFont(self.font)

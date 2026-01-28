@@ -105,9 +105,9 @@ SELECT password FROM Users WHERE email = '{email}'
         conn = sqlite3.connect(sqlite_file)
         db_cursor = conn.cursor()
         print("name", username)
+        username = username.replace(" ", "")
         db_cursor.execute("SELECT verified FROM Users WHERE username=?", (username,))
         verified_tup = db_cursor.fetchone()
-        print("[meri", verified_tup)
         if verified_tup:
             conn.commit()
             conn.close()
