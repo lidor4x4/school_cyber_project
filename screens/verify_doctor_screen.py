@@ -23,6 +23,11 @@ class VerifyDoctorPanel(wx.Panel):
         self.grid_sizer = wx.GridSizer(cols=4, hgap=20, vgap=20)
         self.main_sizer.Add(self.grid_sizer, 0, wx.ALIGN_CENTER | wx.ALL, 10)
 
+        go_back_btn = wx.Button(self, label="Go Back")
+        go_back_btn.Bind(wx.EVT_BUTTON, lambda evt,: self.switch_panel("home"))
+        self.main_sizer.Add(go_back_btn, 0, wx.RIGHT, 5)
+
+
         self.SetSizer(self.main_sizer)
         self.Layout()
 

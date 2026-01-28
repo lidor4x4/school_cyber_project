@@ -105,7 +105,7 @@ SELECT password FROM Users WHERE email = '{email}'
         conn = sqlite3.connect(sqlite_file)
         db_cursor = conn.cursor()
         print("name", username)
-        username = username.replace(" ", "")
+        username = username.replace(" ", "", 1)
         db_cursor.execute("SELECT verified FROM Users WHERE username=?", (username,))
         verified_tup = db_cursor.fetchone()
         if verified_tup:
@@ -127,6 +127,23 @@ SELECT password FROM Users WHERE email = '{email}'
         except Exception as e:
             print(f"Error fetching unverified users: {e}")
             return []
+
+
+    def get_verified_dr_users(self):
+        try:
+            conn = sqlite3.connect(sqlite_file)
+            cursor = conn.cursor()
+
+            cursor.execute("""SELECT username FROM Users WHERE verified = 1 AND role = 'dr' """)
+
+            emails = [row[0] for row in cursor.fetchall()]
+            conn.close()
+            return emails
+
+        except Exception as e:
+            print(f"Error fetching verified users: {e}")
+            return []
+
 
     def verify_user(self, email,verify):
         try:
@@ -165,8 +182,50 @@ SELECT password FROM Users WHERE email = '{email}'
             print(f"Error fetching user role: {e}")
             return 
 
+    def get_dr_queue_by_username(self, username):
+        try:
+            conn = sqlite3.connect(sqlite_file) 
+            cursor = conn.cursor()
+            cursor.execute("SELECT clients_in_line FROM Users WHERE username = ?",(username,))
+            queue_tup = cursor.fetchone()
+            if queue_tup:
+                conn.commit()
+                conn.close()
+                return queue_tup[0]
+        
+        except Exception as e:
+            print(f"Error fetching dr queue: {e}")
+            return 
+        
+    def add_to_dr_queue(self, dr_username, username):
+        try:
+            
+            conn = sqlite3.connect(sqlite_file) 
+            cursor = conn.cursor()
 
+            cursor.execute("SELECT clients_in_line FROM Users WHERE username = ?",(dr_username,))
+            dr_queue = cursor.fetchone()[0]
 
+            # "fdfsf, fdsfdf, fdsf"
+            
+            if dr_queue == "" or dr_queue is None:
+                dr_queue = username
+            else:
+                if username in dr_queue.split(","):
+                    print("User already in queue")
+                    conn.close()
+                    return "User already in queue"
+                
+                dr_queue += f",{username}"   
+
+            cursor.execute("UPDATE Users SET clients_in_line = ? WHERE username = ?",(dr_queue, dr_username))
+
+            conn.commit()
+            conn.close()
+
+        except Exception as e:
+            print(f"Error fetching dr queue: {e}")
+            return
 
 test = Utils()
 # test.createDB()

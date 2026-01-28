@@ -18,7 +18,7 @@ class LiveChatPanel(wx.Panel):
 
         self.server_ip = server_ip
         self.send_to_server = send_to_server
-
+        self.switch_panel = switch_panel
         self.is_video_disabled = False
         self.is_audio_disabled = False
 
@@ -37,6 +37,11 @@ class LiveChatPanel(wx.Panel):
         title_font = wx.Font(36, wx.FONTFAMILY_SWISS, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD)
         title.SetFont(title_font)
         self.main_sizer.Add(title, 0, wx.ALIGN_CENTER | wx.TOP, 20)
+
+        go_back_btn = wx.Button(self, label="Go Back")
+        go_back_btn.Bind(wx.EVT_BUTTON, lambda evt,: self.switch_panel("home"))
+        self.main_sizer.Add(go_back_btn, 0, wx.RIGHT, 5)
+
 
         self.main_sizer.AddStretchSpacer(1)
 

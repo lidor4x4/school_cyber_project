@@ -21,7 +21,6 @@ class HomePanel(wx.Panel):
         self.home_screen_text.SetFont(self.font)
         self.sizer.Add(self.home_screen_text, 0, wx.ALL | wx.CENTER, 10)
 
-        # Print debug info
         print(self.auth_state)
         print(self.user_role)
         print(self.methods.get_verified_by_username(globals["user_name"]))
@@ -44,6 +43,11 @@ class HomePanel(wx.Panel):
                 self.sizer.Add(self.verify_dr_btn, 0, wx.ALL | wx.CENTER, 5)
                 self.verify_dr_btn.Bind(wx.EVT_BUTTON, lambda e: self.switch_panel("verify_doctor_screen"))
 
+                go_schedule_meeting_btn = wx.Button(self, label="Schedule a meeting")
+                go_schedule_meeting_btn.Bind(wx.EVT_BUTTON, lambda evt,: self.switch_panel("schedule_meeting"))
+                self.sizer.Add(go_schedule_meeting_btn, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 5)
+
+
             # If the user is a doctor
             elif self.user_role == "dr":
                 if not self.methods.get_verified_by_username(user_name):
@@ -59,6 +63,11 @@ class HomePanel(wx.Panel):
                 self.live_chat_btn = wx.Button(self, label="Live Chat")
                 self.sizer.Add(self.live_chat_btn, 0, wx.ALL | wx.CENTER, 5)
                 self.live_chat_btn.Bind(wx.EVT_BUTTON, self.handle_live_chat_screen)
+                go_schedule_meeting_btn = wx.Button(self, label="Schedule a Meeting")
+                go_schedule_meeting_btn.Bind(wx.EVT_BUTTON, lambda evt,: self.switch_panel("schedule_meeting"))
+                self.sizer.Add(go_schedule_meeting_btn, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 5)
+
+
 
         # If the user isn't logged in
         else:
@@ -73,7 +82,6 @@ class HomePanel(wx.Panel):
         self.SetSizer(self.sizer)
 
     def handle_live_chat_screen(self, event):
-        print(globals["user_role"])
         if globals["user_role"] == "dr":
             self.switch_panel("live_chat")
         else:

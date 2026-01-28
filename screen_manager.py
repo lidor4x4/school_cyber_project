@@ -8,6 +8,7 @@ from screens.signup_screen import SignupPanel
 from screens.home_screen import HomePanel
 from screens.verify_doctor_screen import VerifyDoctorPanel
 from screens.waiting_room_screen import WaitingRoomPanel
+from screens.schedule_meeting import ScheduleMeetingPanel
 
 VIDEO_PORT = 12346
 AUDIO_PORT = 12347
@@ -16,8 +17,8 @@ class MainFrame(wx.Frame):
     def __init__(self):
         super().__init__(None, title="My App", size=(1280, 720))
 
-        self.HOST = "localhost"  
-        #self.HOST = "192.168.3.216"  
+        #self.HOST = "localhost"  
+        self.HOST = "192.168.3.78"  
         self.PORT = 12345
 
         self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -45,6 +46,8 @@ class MainFrame(wx.Frame):
             self.current_panel = VerifyDoctorPanel(self, self.switch_panel, self.send_to_server)
         elif name == "waiting_room":
             self.current_panel = WaitingRoomPanel(self, self.switch_panel, self.send_to_server)
+        elif name == "schedule_meeting":
+            self.current_panel = ScheduleMeetingPanel(self, self.switch_panel, self.send_to_server)
 
         self.Layout()
 
