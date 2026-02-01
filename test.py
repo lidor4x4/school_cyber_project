@@ -1,1 +1,1 @@
-print(0 == False)
+data = "VERIFY  EyalGolan"

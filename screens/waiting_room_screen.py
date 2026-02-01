@@ -1,5 +1,5 @@
 import wx
-import threading
+#import threading
 from time import sleep
 import utils.utils as utils
 

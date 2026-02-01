@@ -102,16 +102,23 @@ SELECT password FROM Users WHERE email = '{email}'
             return email_tup[0]
 
     def get_verified_by_username(self, username):
-        conn = sqlite3.connect(sqlite_file)
-        db_cursor = conn.cursor()
-        print("name", username)
-        username = username.replace(" ", "", 1)
-        db_cursor.execute("SELECT verified FROM Users WHERE username=?", (username,))
-        verified_tup = db_cursor.fetchone()
-        if verified_tup:
-            conn.commit()
-            conn.close()
-            return verified_tup[0]
+        try:
+            conn = sqlite3.connect(sqlite_file)
+            db_cursor = conn.cursor()
+            print(username)
+            username = username.replace(" ", "", 1)
+            print(username)
+            db_cursor.execute("SELECT verified FROM Users WHERE username=?", (username,))
+            verified_tup = db_cursor.fetchone()
+            print(verified_tup[0])
+            if verified_tup:
+                conn.commit()
+                conn.close()
+                return verified_tup[0]
+
+        except Exception as e:
+            print(f"Error getting verified user: {e}")
+            return 0        
 
     def get_unverified_users(self):
         try:
@@ -119,7 +126,6 @@ SELECT password FROM Users WHERE email = '{email}'
             cursor = conn.cursor()
 
             cursor.execute("""SELECT email FROM Users WHERE verified = 0 AND (rejected IS NULL OR rejected = 0)""")
-
             emails = [row[0] for row in cursor.fetchall()]
             conn.close()
             return emails

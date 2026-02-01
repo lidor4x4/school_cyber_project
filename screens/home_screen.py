@@ -25,7 +25,6 @@ class HomePanel(wx.Panel):
         print(self.user_role)
         print("dsadsa", globals['user_name'])
         #print(send_to_server(f"VERIFY,{globals['user_name']}"))
-
         # If the user is logged in
         if self.auth_state:
             user_name = globals["user_name"]
@@ -51,7 +50,7 @@ class HomePanel(wx.Panel):
 
             # If the user is a doctor
             elif self.user_role == "dr":
-                if not send_to_server(f"VERIFY {user_name}"):
+                if not send_to_server(f"VERIFY,{user_name}"):
                     self.not_verified_text = wx.StaticText(self, label=f"{user_name}, you aren't verified yet.")
                     self.not_verified_text.SetFont(self.font)
                     self.sizer.Add(self.not_verified_text, 0, wx.ALL | wx.CENTER, 10)

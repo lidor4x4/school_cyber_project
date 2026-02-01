@@ -74,6 +74,7 @@ def tcp_server():
                             sock.send(methods.encrypt_message(f"There was an error: {response}"))
                     
                     elif data.startswith("VERIFY"):
+                        print("jutujytjuymn", data)
                         return methods.get_verified_by_username(data.split(",")[-1])
 
 
