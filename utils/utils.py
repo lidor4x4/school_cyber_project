@@ -2,7 +2,6 @@ import bcrypt
 import sqlite3
 from cryptography.fernet import Fernet
 import os
-import base64
 from globals import globals
 
 
@@ -49,8 +48,6 @@ class Utils:
 
             conn.commit()
             conn.close()
-
-            
 
             return "200"
 
@@ -105,9 +102,7 @@ SELECT password FROM Users WHERE email = '{email}'
         try:
             conn = sqlite3.connect(sqlite_file)
             db_cursor = conn.cursor()
-            print(username)
             username = username.replace(" ", "", 1)
-            print(username)
             db_cursor.execute("SELECT verified FROM Users WHERE username=?", (username,))
             verified_tup = db_cursor.fetchone()
             print(verified_tup[0])
@@ -151,13 +146,14 @@ SELECT password FROM Users WHERE email = '{email}'
             return []
 
 
-    def verify_user(self, email,verify):
+    def verify_user(self, email, verify):
         try:
             conn = sqlite3.connect(sqlite_file)
             cursor = conn.cursor()
             cursor.execute("UPDATE Users SET verified = ? WHERE email = ?", (1 if verify else 0, email))
             conn.commit()
             conn.close()
+
         except Exception as e:
             print(f"Error verifying user {email}: {e}")
 

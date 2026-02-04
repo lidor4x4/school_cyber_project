@@ -5,6 +5,7 @@ class MyApp(wx.App):
     def OnInit(self):
         frame = MainFrame()
         frame.Centre(True)
+        frame.Maximize(True)
         frame.Show()
         return True
 

@@ -74,9 +74,13 @@ def tcp_server():
                             sock.send(methods.encrypt_message(f"There was an error: {response}"))
                     
                     elif data.startswith("VERIFY"):
-                        print("jutujytjuymn", data)
-                        return methods.get_verified_by_username(data.split(",")[-1])
+                        username_verify = data.split(",")[-1]
+                        verify_status = str(methods.get_verified_by_username(username_verify))
+                        sock.send(methods.encrypt_message(verify_status))
 
+                    elif data.startswith("GET_UNVERIFIED"):
+                        users = methods.get_unverified_users()
+                        sock.send(methods.encrypt_message(','.join(users)))
 
                 except Exception as e:
                     print("TCP error:", e)

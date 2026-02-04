@@ -93,8 +93,8 @@ class ScheduleMeetingPanel(wx.Panel):
             print(f"Scheduling meeting with doctor: {dr_username} for user: {username}")
             returned = self.methods.add_to_dr_queue(dr_username, username)
             if returned == "User already in queue":
-                wx.MessageBox(f"Scheduling wasn't successful you already have a meeting with: {dr_username}.", "meetings wasn't confirmed", wx.OK | wx.ICON_INFORMATION)
+                wx.MessageBox(f"Scheduling wasn't successful you already have a meeting with: Dr. {dr_username}.", "meetings wasn't confirmed", wx.OK | wx.ICON_INFORMATION)
             else:
-                wx.MessageBox(f'Scheduling was successful you have a meeting with: {dr_username}.', 'meetings confirmed', wx.OK | wx.ICON_INFORMATION)
+                wx.MessageBox(f'Scheduling was successful you have a meeting with: Dr. {dr_username}.', 'meetings confirmed', wx.OK | wx.ICON_INFORMATION)
         except Exception as e:
             print(f"Error scheduling meeting: {e}")

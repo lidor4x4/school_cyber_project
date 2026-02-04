@@ -21,10 +21,18 @@ class HomePanel(wx.Panel):
         self.home_screen_text.SetFont(self.font)
         self.sizer.Add(self.home_screen_text, 0, wx.ALL | wx.CENTER, 10)
 
+        def handle_sign_out(self):
+            globals["auth_state"] = False
+            globals["user_name"] = ""
+            globals["user_role"] = ""
+            globals["is_admin"] = False
+            switch_panel("home")
+
+
         print(self.auth_state)
         print(self.user_role)
         print("dsadsa", globals['user_name'])
-        #print(send_to_server(f"VERIFY,{globals['user_name']}"))
+        #print("yguirdfgofuguf", send_to_server(f"VERIFY,EyalGolan"))
         # If the user is logged in
         if self.auth_state:
             user_name = globals["user_name"]
@@ -32,6 +40,9 @@ class HomePanel(wx.Panel):
             self.user_name_static_text = wx.StaticText(self, label=f"Welcome: {user_name}")
             self.user_name_static_text.SetFont(self.font)
             self.sizer.Add(self.user_name_static_text, 0, wx.ALL | wx.CENTER, 10)
+            sign_out_btn = wx.Button(self, label="Sign Out")
+            sign_out_btn.Bind(wx.EVT_BUTTON, handle_sign_out)
+            self.sizer.Add(sign_out_btn, 0, wx.RIGHT, 5)
 
            
             if user_name.strip() == "Admin":  
@@ -50,7 +61,9 @@ class HomePanel(wx.Panel):
 
             # If the user is a doctor
             elif self.user_role == "dr":
-                if not send_to_server(f"VERIFY,{user_name}"):
+                verify_status = send_to_server(f"VERIFY,{user_name}")
+                print("Verify Status", verify_status)
+                if send_to_server(f"VERIFY,{user_name}") == "0":
                     self.not_verified_text = wx.StaticText(self, label=f"{user_name}, you aren't verified yet.")
                     self.not_verified_text.SetFont(self.font)
                     self.sizer.Add(self.not_verified_text, 0, wx.ALL | wx.CENTER, 10)
