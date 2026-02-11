@@ -190,11 +190,16 @@ SELECT password FROM Users WHERE email = '{email}'
             cursor = conn.cursor()
             cursor.execute("SELECT clients_in_line FROM Users WHERE username = ?",(username,))
             queue_tup = cursor.fetchone()
-            if queue_tup:
+            if queue_tup and queue_tup[0] != None:
                 conn.commit()
                 conn.close()
                 return queue_tup[0]
-        
+            
+            else:
+                conn.commit()
+                conn.close()
+                return "The queue is empty"
+            
         except Exception as e:
             print(f"Error fetching dr queue: {e}")
             return 
@@ -228,6 +233,8 @@ SELECT password FROM Users WHERE email = '{email}'
         except Exception as e:
             print(f"Error fetching dr queue: {e}")
             return
+
+    
 
 test = Utils()
 # test.createDB()

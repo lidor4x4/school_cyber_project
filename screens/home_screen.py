@@ -31,8 +31,7 @@ class HomePanel(wx.Panel):
 
         print(self.auth_state)
         print(self.user_role)
-        print("dsadsa", globals['user_name'])
-        #print("yguirdfgofuguf", send_to_server(f"VERIFY,EyalGolan"))
+        #print("dsadsa", globals['user_name'])
         # If the user is logged in
         if self.auth_state:
             user_name = globals["user_name"]

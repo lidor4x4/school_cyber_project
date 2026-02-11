@@ -82,6 +82,16 @@ def tcp_server():
                         users = methods.get_unverified_users()
                         sock.send(methods.encrypt_message(','.join(users)))
 
+                    elif data.startswith("GET_QUEUE"):
+                        fields = [x.strip() for x in data.split(',')]
+                        dr_username = fields[1]
+                        
+                        print("dasdasd", fields)
+                        
+                        dr_queue = methods.get_dr_queue_by_username(dr_username)
+                        print("Eyal Golan", dr_queue)
+                        sock.send(methods.encrypt_message(dr_queue))        
+
                 except Exception as e:
                     print("TCP error:", e)
                     sockets.remove(sock)
