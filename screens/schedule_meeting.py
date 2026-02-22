@@ -55,6 +55,8 @@ class ScheduleMeetingPanel(wx.Panel):
         card_sizer.Add(dr_username_text, 0, wx.ALIGN_CENTER | wx.ALL, 10)
 
         users_in_queue = self.methods.get_dr_queue_by_username(dr_username)
+        if "The queue is empty" in users_in_queue:
+            users_in_queue = None
         users_in_queue_count = str(len(users_in_queue.split(",")) if users_in_queue else 0)
 
         users_in_queue_text = wx.StaticText(

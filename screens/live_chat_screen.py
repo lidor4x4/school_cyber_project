@@ -5,6 +5,7 @@ import threading
 import numpy as np
 import sounddevice as sd
 import time
+from globals import globals
 
 VIDEO_PORT = 12346
 AUDIO_PORT = 12347
@@ -134,7 +135,8 @@ class LiveChatPanel(wx.Panel):
         self.main_sizer.Layout()
 
     def load_queue_async(self):
-        response = self.send_to_server("GET_QUEUE,Dudu Farok")
+        username = globals["user_name"]
+        response = self.send_to_server(f"GET_QUEUE,{username}")
         wx.CallAfter(self.refresh_queue_ui, response)
 
     def refresh_queue_ui(self, response):
@@ -143,20 +145,18 @@ class LiveChatPanel(wx.Panel):
 
         self.Freeze() # Stops UI repaint during rebuild
         
-        # Clear existing
-        for child in self.queue_panel.GetChildren():
-            child.Destroy()
         self.queue_sizer.Clear()
 
-        if not response:
+        print(response)
+
+        if "The queue is empty" in response:
             txt = wx.StaticText(self.queue_panel, label="No patients in queue.")
-            self.queue_sizer.Add(txt, 0, wx.ALIGN_CENTER | wx.ALL, 10)
+            self.queue_sizer.Add(txt, 0, wx.ALIGN_RIGHT | wx.ALL, 10)
         else:
             patients = response.split(",")
             for patient in patients:
                 self.add_patient_row(patient.strip())
 
-        # LOCAL Layout: only calculate the queue area
         self.queue_panel.Layout()
         # Refresh the main sizer so the queue panel actually takes its space
         self.main_sizer.Layout()
