@@ -24,6 +24,10 @@ class WaitingRoomPanel(wx.Panel):
         self.desc.SetFont(desc_font)
         self.main_sizer.Add(self.desc, 0, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL, 20)
 
+        self.go_back_btn = wx.Button(self, label="Go Back")
+        self.go_back_btn.Bind(wx.EVT_BUTTON, lambda evt: self.switch_panel("home"))
+        self.main_sizer.Add(self.go_back_btn, 0, wx.ALIGN_LEFT | wx.LEFT | wx.BOTTOM, 10)
+
 
         self.SetSizer(self.main_sizer)
         self.Layout()

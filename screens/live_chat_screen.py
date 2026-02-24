@@ -78,15 +78,15 @@ class LiveChatPanel(wx.Panel):
 
         self.main_sizer.Add(controls_wrapper, 0, wx.EXPAND | wx.BOTTOM, 10)
 
-        queue_wrapper = wx.BoxSizer(wx.HORIZONTAL)
-        queue_wrapper.AddStretchSpacer()
+        queue_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        queue_sizer.AddStretchSpacer()
 
         self.queue_toggle_btn = wx.Button(self, label="See Queue", size=(140, 40))
         self.queue_toggle_btn.Bind(wx.EVT_BUTTON, self.toggle_queue)
 
-        queue_wrapper.Add(self.queue_toggle_btn, 0, wx.RIGHT | wx.BOTTOM, 20)
+        queue_sizer.Add(self.queue_toggle_btn, 0, wx.RIGHT | wx.BOTTOM, 20)
 
-        self.main_sizer.Add(queue_wrapper, 0, wx.EXPAND)
+        self.main_sizer.Add(queue_sizer, 0, wx.EXPAND)
 
         self.queue_panel = wx.Panel(self)
         self.queue_panel.Hide()
@@ -125,16 +125,14 @@ class LiveChatPanel(wx.Panel):
         if self.queue_visible:
             self.queue_toggle_btn.SetLabel("Hide Queue")
             self.queue_panel.Show()
-            # Fetching must be threaded or it will freeze the video capture
-            threading.Thread(target=self.load_queue_async, daemon=True).start()
+            threading.Thread(target=self.load_queue, daemon=True).start()
         else:
             self.queue_toggle_btn.SetLabel("See Queue")
             self.queue_panel.Hide()
 
-        # Update sizer layout without freezing
         self.main_sizer.Layout()
 
-    def load_queue_async(self):
+    def load_queue(self):
         username = globals["user_name"]
         response = self.send_to_server(f"GET_QUEUE,{username}")
         wx.CallAfter(self.refresh_queue_ui, response)
@@ -142,8 +140,6 @@ class LiveChatPanel(wx.Panel):
     def refresh_queue_ui(self, response):
         if not self.queue_visible:
             return
-
-        self.Freeze() # Stops UI repaint during rebuild
         
         self.queue_sizer.Clear()
 
@@ -158,10 +154,8 @@ class LiveChatPanel(wx.Panel):
                 self.add_patient_row(patient.strip())
 
         self.queue_panel.Layout()
-        # Refresh the main sizer so the queue panel actually takes its space
         self.main_sizer.Layout()
         
-        self.Thaw() # Resume UI painting
 
     def add_patient_row(self, patient_name):
         row = wx.BoxSizer(wx.HORIZONTAL)
@@ -182,11 +176,11 @@ class LiveChatPanel(wx.Panel):
 
     def accept_patient(self, patient_name):
         self.send_to_server(f"ACCEPT_PATIENT,{patient_name}")
-        threading.Thread(target=self.load_queue_async, daemon=True).start()
+        threading.Thread(target=self.load_queue, daemon=True).start()
 
     def kick_patient(self, patient_name):
         self.send_to_server(f"KICK_PATIENT,{patient_name}")
-        threading.Thread(target=self.load_queue_async, daemon=True).start()
+        threading.Thread(target=self.load_queue, daemon=True).start()
 
     def handle_go_back(self, _):
         self.stop_event.set()
@@ -236,7 +230,6 @@ class LiveChatPanel(wx.Panel):
         while not self.stop_event.is_set():
             if self.is_video_disabled:
                 frame = self.disabled_np
-                # Use a small check to see if the widget is still valid
                 if self.self_video:
                     wx.CallAfter(self.self_video.SetBitmap, self.video_off_bmp)
             else:
@@ -258,7 +251,7 @@ class LiveChatPanel(wx.Panel):
             except:
                 pass
 
-            time.sleep(0.04) # SLIGHTLY slower to give the UI thread room to breathe
+            time.sleep(0.04) 
 
     def receive_video(self):
         while not self.stop_event.is_set():

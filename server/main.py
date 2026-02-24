@@ -25,7 +25,7 @@ def tcp_server():
     server.setblocking(False)
 
     sockets = [server]
-    clients_by_name = {}
+    #clients_by_name = {}
 
     print("TCP AUTH server running on port", TCP_PORT)
 
@@ -57,7 +57,7 @@ def tcp_server():
                         response = methods.handle_signup(email, password, username, user_type)
                         print(f"Sign up response: {response}")
                         if response == "200":
-                            clients_by_name[username] = sock
+                            #clients_by_name[username] = sock
                             sock.send(methods.encrypt_message(f"Sign up was successful!!"))
                         else:
                             sock.send(methods.encrypt_message(f"There was an error: {response}"))
@@ -71,7 +71,7 @@ def tcp_server():
                         response = methods.handle_login(email, password)
                         username_login = methods.get_username(email)
                         if response == "200":
-                            clients_by_name[username] = sock
+                            #clients_by_name[username] = sock
                             sock.send(methods.encrypt_message(f"Login was successful!!, {username_login}"))
                         else:
                             sock.send(methods.encrypt_message(f"There was an error: {response}"))
@@ -92,7 +92,6 @@ def tcp_server():
                         print("dasdasd", fields)
                         
                         dr_queue = methods.get_dr_queue_by_username(dr_username)
-                        print("Eyal Golan", dr_queue)
                         sock.send(methods.encrypt_message(dr_queue))        
 
                     elif data.startswith("ACCEPT_PATIENT"):

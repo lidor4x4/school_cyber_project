@@ -18,6 +18,10 @@ class LoginPanel(wx.Panel):
         self.info.SetForegroundColour(wx.RED)
         self.sizer.Add(self.info, 0, wx.ALL | wx.CENTER, 10)
 
+        self.go_back_btn = wx.Button(self, label="Go Back")
+        self.go_back_btn.Bind(wx.EVT_BUTTON, lambda evt: self.switch_panel("home"))
+        self.sizer.Add(self.go_back_btn, 0, wx.ALIGN_LEFT | wx.LEFT | wx.BOTTOM, 10)
+
         # Email error static_text:
         self.email_error = wx.StaticText(self, label="")
         self.email_error.SetForegroundColour(wx.RED)

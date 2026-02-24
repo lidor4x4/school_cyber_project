@@ -15,6 +15,11 @@ class SignupPanel(wx.Panel):
         self.sizer = wx.BoxSizer(wx.VERTICAL)
         self.sizer.Add(wx.StaticText(self, label="Signup Page"), 0, wx.ALL | wx.CENTER, 10)
 
+        self.go_back_btn = wx.Button(self, label="Go Back")
+        self.go_back_btn.Bind(wx.EVT_BUTTON, lambda evt: self.switch_panel("home"))
+        self.sizer.Add(self.go_back_btn, 0, wx.ALIGN_LEFT | wx.LEFT | wx.BOTTOM, 10)
+
+
         # username error static_text:
         self.username_error = wx.StaticText(self, label="")
         self.username_error.SetForegroundColour(wx.RED)
@@ -86,7 +91,7 @@ class SignupPanel(wx.Panel):
         confirm_password = self.confirm_password_ctrl.GetValue()
         errors = False
 
-        # Input's check
+        # Input check
         valid = re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', email)
         if not valid:
             self.email_error.SetLabel("Invalid Email")
