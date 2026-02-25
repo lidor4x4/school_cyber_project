@@ -94,6 +94,21 @@ def tcp_server():
                         
                         dr_queue = methods.get_dr_queue_by_username(dr_username)
                         sock.send(methods.encrypt_message(dr_queue))        
+                    
+                    elif data.startswith("GET_VERIFIED_DR_USERS"):
+                        dr_users = ",".join(methods.get_verified_dr_users())
+                        sock.send(methods.encrypt_message(dr_users))
+                    
+                    elif data.startswith("GET_DR_QUEUE_BY_USERNAME"):
+                        dr_username_queue = data.split(",")[-1]
+                        users_in_queue = methods.get_dr_queue_by_username(dr_username_queue)
+                        sock.send(methods.encrypt_message(users_in_queue))
+
+                    elif data.startswith("ADD_TO_DR_QUEUE"):
+                        user_username = data.split(",")[-1]
+                        add_queue_dr_username = data.split(",")[-2]
+                        ret = methods.add_to_dr_queue(add_queue_dr_username, user_username)
+                        sock.send(methods.encrypt_message(ret))
 
                     elif data.startswith("ACCEPT_PATIENT"):
                         username = data.split(",")[-1]

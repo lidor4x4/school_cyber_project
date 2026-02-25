@@ -52,8 +52,14 @@ class MainFrame(wx.Frame):
         self.Layout()
 
     def send_to_server(self, message):
-        encrypted = self.methods.encrypt_message(message)  # bytes
+        encrypted = self.methods.encrypt_message(message) 
         self.client_socket.send(encrypted)
 
-        response = self.client_socket.recv(4096)          # bytes
-        return self.methods.decrypt_message(response)     # pass bytes directly
+        response = self.client_socket.recv(4096)         
+        return self.methods.decrypt_message(response)     
+    
+    def send_to_server_unsecured(self, message):
+        self.client_socket.send(message)
+
+        response = self.client_socket.recv(4096)        
+        return response   

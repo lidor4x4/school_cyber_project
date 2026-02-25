@@ -48,6 +48,5 @@ class WaitingRoomPanel(wx.Panel):
             self.switch_panel("live_chat")
 
     def Destroy(self):
-        # stop thread if panel closes
         self.running = False
         super().Destroy()

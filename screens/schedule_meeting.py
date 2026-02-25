@@ -9,7 +9,7 @@ class ScheduleMeetingPanel(wx.Panel):
 
         self.methods = utils.Utils()
         self.switch_panel = switch_panel
-        self.client_socket = send_to_server
+        self.send_to_server = send_to_server
         self.auth_state = globals["auth_state"]
         self.user_role = globals["user_role"]
         self.verified_dr = True
@@ -32,7 +32,10 @@ class ScheduleMeetingPanel(wx.Panel):
 
         self.SetSizer(self.sizer)
 
-        users = self.methods.get_verified_dr_users()
+        #users = self.methods.get_verified_dr_users()
+        users = self.send_to_server("GET_VERIFIED_DR_USERS").split(",")
+
+        #print("client", self.send_to_server("GET_VERIFIED_DR_USERS"))
 
         for email in users:
             self.create_doctor_card(email)
@@ -54,7 +57,9 @@ class ScheduleMeetingPanel(wx.Panel):
 
         card_sizer.Add(dr_username_text, 0, wx.ALIGN_CENTER | wx.ALL, 10)
 
-        users_in_queue = self.methods.get_dr_queue_by_username(dr_username)
+        #users_in_queue = self.methods.get_dr_queue_by_username(dr_username)
+        users_in_queue = self.send_to_server(f"GET_DR_QUEUE_BY_USERNAME,{dr_username}")
+        
         if "The queue is empty" in users_in_queue:
             users_in_queue = None
         users_in_queue_count = str(len(users_in_queue.split(",")) if users_in_queue else 0)
@@ -93,7 +98,8 @@ class ScheduleMeetingPanel(wx.Panel):
         try:
             username = globals["user_name"]
             print(f"Scheduling meeting with doctor: {dr_username} for user: {username}")
-            returned = self.methods.add_to_dr_queue(dr_username, username)
+            # returned = self.methods.add_to_dr_queue(dr_username, username)
+            returned = self.send_to_server(f"ADD_TO_DR_QUEUE,{dr_username},{username}")
             if returned == "User already in queue":
                 wx.MessageBox(f"Scheduling wasn't successful you already have a meeting with: Dr. {dr_username}.", "meetings wasn't confirmed", wx.OK | wx.ICON_INFORMATION)
             else:
