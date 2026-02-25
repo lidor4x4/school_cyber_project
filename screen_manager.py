@@ -45,7 +45,7 @@ class MainFrame(wx.Frame):
         elif name == "verify_doctor_screen":
             self.current_panel = VerifyDoctorPanel(self, self.switch_panel, self.send_to_server)
         elif name == "waiting_room":
-            self.current_panel = WaitingRoomPanel(self, self.switch_panel, self.send_to_server)
+            self.current_panel = WaitingRoomPanel(self, self.switch_panel, self.send_to_server, self.client_socket)
         elif name == "schedule_meeting":
             self.current_panel = ScheduleMeetingPanel(self, self.switch_panel, self.send_to_server)
 

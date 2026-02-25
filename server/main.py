@@ -25,7 +25,7 @@ def tcp_server():
     server.setblocking(False)
 
     sockets = [server]
-    #clients_by_name = {}
+    clients_by_name = {}
 
     print("TCP AUTH server running on port", TCP_PORT)
 
@@ -57,7 +57,8 @@ def tcp_server():
                         response = methods.handle_signup(email, password, username, user_type)
                         print(f"Sign up response: {response}")
                         if response == "200":
-                            #clients_by_name[username] = sock
+                            clients_by_name[username] = sock
+                            print(clients_by_name)
                             sock.send(methods.encrypt_message(f"Sign up was successful!!"))
                         else:
                             sock.send(methods.encrypt_message(f"There was an error: {response}"))
@@ -71,7 +72,7 @@ def tcp_server():
                         response = methods.handle_login(email, password)
                         username_login = methods.get_username(email)
                         if response == "200":
-                            #clients_by_name[username] = sock
+                            clients_by_name[username_login] = sock
                             sock.send(methods.encrypt_message(f"Login was successful!!, {username_login}"))
                         else:
                             sock.send(methods.encrypt_message(f"There was an error: {response}"))
@@ -96,14 +97,12 @@ def tcp_server():
 
                     elif data.startswith("ACCEPT_PATIENT"):
                         username = data.split(",")[-1]
-                        
-
+                        clients_by_name[username].send(methods.encrypt_message("ACCEPTED"))
 
                 except Exception as e:
                     print("TCP error:", e)
                     sockets.remove(sock)
                     sock.close()
-
 
 
 def udp_relay(port, client_list):

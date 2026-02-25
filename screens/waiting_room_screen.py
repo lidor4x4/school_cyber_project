@@ -1,15 +1,16 @@
 import wx
-#import threading
-from time import sleep
+import threading
 import utils.utils as utils
 
 class WaitingRoomPanel(wx.Panel):
-    def __init__(self, parent, switch_panel=None, send_to_server=None):
+    def __init__(self, parent, switch_panel, send_to_server, client_socket):
         super().__init__(parent)
 
         self.switch_panel = switch_panel
         self.send_to_server = send_to_server
+        self.client_socket = client_socket
         self.methods = utils.Utils()
+        self.running = True  
 
         self.main_sizer = wx.BoxSizer(wx.VERTICAL)
 
@@ -28,7 +29,25 @@ class WaitingRoomPanel(wx.Panel):
         self.go_back_btn.Bind(wx.EVT_BUTTON, lambda evt: self.switch_panel("home"))
         self.main_sizer.Add(self.go_back_btn, 0, wx.ALIGN_LEFT | wx.LEFT | wx.BOTTOM, 10)
 
-
         self.SetSizer(self.main_sizer)
         self.Layout()
 
+        threading.Thread(target=self.wait_for_server, daemon=True).start()
+
+    def wait_for_server(self):
+        try:
+            data = self.client_socket.recv(4096)
+            if data:
+                message = self.methods.decrypt_message(data)
+                wx.CallAfter(self.handle_server_message, message)
+        except Exception as e:
+            print("Error receiving from server:", e)
+
+    def handle_server_message(self, message):
+        if message == "ACCEPTED":
+            self.switch_panel("live_chat")
+
+    def Destroy(self):
+        # stop thread if panel closes
+        self.running = False
+        super().Destroy()
