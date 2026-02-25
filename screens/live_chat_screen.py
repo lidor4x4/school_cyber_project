@@ -176,11 +176,11 @@ class LiveChatPanel(wx.Panel):
 
     def accept_patient(self, patient_name):
         self.send_to_server(f"ACCEPT_PATIENT,{patient_name}")
-        threading.Thread(target=self.load_queue, daemon=True).start()
+        # threading.Thread(target=self.load_queue, daemon=True).start()
 
     def kick_patient(self, patient_name):
         self.send_to_server(f"KICK_PATIENT,{patient_name}")
-        threading.Thread(target=self.load_queue, daemon=True).start()
+        # threading.Thread(target=self.load_queue, daemon=True).start()
 
     def handle_go_back(self, _):
         self.stop_event.set()
@@ -227,11 +227,15 @@ class LiveChatPanel(wx.Panel):
         )
 
     def send_video(self):
+        i = 0
         while not self.stop_event.is_set():
             if self.is_video_disabled:
                 frame = self.disabled_np
-                if self.self_video:
-                    wx.CallAfter(self.self_video.SetBitmap, self.video_off_bmp)
+                # if self.self_video:
+                print("HERE!", i)
+                wx.CallAfter(self.self_video.SetBitmap, self.video_off_bmp)
+                #self.self_video.SetBitmap(self.video_off_bmp)
+                i+=1
             else:
                 ret, frame = self.cap.read()
                 if not ret:
@@ -242,8 +246,8 @@ class LiveChatPanel(wx.Panel):
 
                 rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                 bmp = wx.Bitmap.FromBuffer(600, 400, rgb)
-                if self.self_video:
-                    wx.CallAfter(self.self_video.SetBitmap, bmp)
+                # if self.self_video:
+                wx.CallAfter(self.self_video.SetBitmap, bmp)
 
             _, buf = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 70])
             try:
