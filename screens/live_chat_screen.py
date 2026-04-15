@@ -12,7 +12,6 @@ AUDIO_PORT = 12347
 MAX_UDP_SIZE = 65535
 BLOCKSIZE = 2048
 
-
 class LiveChatPanel(wx.Panel):
     def __init__(self, parent, switch_panel, send_to_server, server_ip):
         super().__init__(parent)
@@ -155,7 +154,6 @@ class LiveChatPanel(wx.Panel):
 
         self.queue_panel.Layout()
         self.main_sizer.Layout()
-        
 
     def add_patient_row(self, patient_name):
         row = wx.BoxSizer(wx.HORIZONTAL)
@@ -176,11 +174,11 @@ class LiveChatPanel(wx.Panel):
 
     def accept_patient(self, patient_name):
         self.send_to_server(f"ACCEPT_PATIENT,{patient_name}")
-        # threading.Thread(target=self.load_queue, daemon=True).start()
+        wx.CallAfter(self.update_video_stream)
 
     def kick_patient(self, patient_name):
         self.send_to_server(f"KICK_PATIENT,{patient_name}")
-        # threading.Thread(target=self.load_queue, daemon=True).start()
+        wx.CallAfter(self.update_video_stream)
 
     def handle_go_back(self, _):
         self.stop_event.set()
@@ -192,8 +190,8 @@ class LiveChatPanel(wx.Panel):
             self.cap.release()
             self.video_udp.close()
             self.audio_udp.close()
-        except:
-            pass
+        except Exception as e:
+            print(f"Error releasing resources: {e}")
         event.Skip()
 
     def load_icon_normalized(self, path, box_size):
@@ -229,33 +227,31 @@ class LiveChatPanel(wx.Panel):
     def send_video(self):
         i = 0
         while not self.stop_event.is_set():
-            if self.is_video_disabled:
-                frame = self.disabled_np
-                # if self.self_video:
-                print("HERE!", i)
-                wx.CallAfter(self.self_video.SetBitmap, self.video_off_bmp)
-                #self.self_video.SetBitmap(self.video_off_bmp)
-                i+=1
-            else:
-                ret, frame = self.cap.read()
-                if not ret:
-                    continue
-
-                frame = cv2.resize(frame, (600, 400))
-                frame = cv2.flip(frame, 1)
-
-                rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                bmp = wx.Bitmap.FromBuffer(600, 400, rgb)
-                # if self.self_video:
-                wx.CallAfter(self.self_video.SetBitmap, bmp)
-
-            _, buf = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 70])
             try:
-                self.video_udp.sendto(buf.tobytes(), (self.server_ip, VIDEO_PORT))
-            except:
-                pass
+                if self.is_video_disabled:
+                    frame = self.disabled_np
+                    wx.CallAfter(self.self_video.SetBitmap, self.video_off_bmp)
+                else:
+                    ret, frame = self.cap.read()
+                    if not ret:
+                        continue
 
-            time.sleep(0.04) 
+                    frame = cv2.resize(frame, (600, 400))
+                    frame = cv2.flip(frame, 1)
+
+                    rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                    bmp = wx.Bitmap.FromBuffer(600, 400, rgb)
+                    wx.CallAfter(self.self_video.SetBitmap, bmp)
+
+                _, buf = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 70])
+                try:
+                    self.video_udp.sendto(buf.tobytes(), (self.server_ip, VIDEO_PORT))
+                except Exception as e:
+                    print(f"Video send error: {e}")
+
+                time.sleep(0.04)  # 25 FPS
+            except Exception as e:
+                print(f"Video thread error: {e}")
 
     def receive_video(self):
         while not self.stop_event.is_set():
@@ -269,9 +265,10 @@ class LiveChatPanel(wx.Panel):
                 h, w = rgb.shape[:2]
                 bmp = wx.Bitmap.FromBuffer(w, h, rgb)
 
-                if self.remote_video:
-                    wx.CallAfter(self.remote_video.SetBitmap, bmp)
-            except:
+                wx.CallAfter(self.remote_video.SetBitmap, bmp)
+
+            except Exception as e:
+                print(f"Error receiving video: {e}")
                 continue
 
     def send_audio(self):
@@ -281,8 +278,8 @@ class LiveChatPanel(wx.Panel):
             try:
                 data = (indata * 32767).astype(np.int16).tobytes()
                 self.audio_udp.sendto(data, (self.server_ip, AUDIO_PORT))
-            except:
-                pass
+            except Exception as e:
+                print(f"Audio send error: {e}")
             
         with sd.InputStream(channels=1, samplerate=44100,
                             blocksize=BLOCKSIZE, callback=callback):
@@ -297,7 +294,8 @@ class LiveChatPanel(wx.Panel):
         while not self.stop_event.is_set():
             try:
                 data, _ = self.audio_udp.recvfrom(BLOCKSIZE * 2)
-            except:
+            except Exception as e:
+                print(f"Audio receive error: {e}")
                 continue
 
             audio = np.frombuffer(data, np.int16).astype(np.float32) / 32767
