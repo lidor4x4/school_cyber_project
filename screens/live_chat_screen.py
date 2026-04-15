@@ -173,8 +173,12 @@ class LiveChatPanel(wx.Panel):
         self.queue_sizer.Add(row, 0, wx.EXPAND | wx.BOTTOM, 5)
 
     def accept_patient(self, patient_name):
+        # Simulating accepting patient
         self.send_to_server(f"ACCEPT_PATIENT,{patient_name}")
+        
+        # Update the UI in the main thread
         wx.CallAfter(self.update_video_stream)
+        wx.CallAfter(self.update_audio_stream)
 
     def kick_patient(self, patient_name):
         self.send_to_server(f"KICK_PATIENT,{patient_name}")
@@ -224,6 +228,14 @@ class LiveChatPanel(wx.Panel):
             self.muted_mic_bitmap if self.is_audio_disabled else self.unmuted_mic_bitmap
         )
 
+    def update_video_stream(self):
+        # Logic to update the video stream, could include re-initializing or refreshing components
+        print("Video stream updated.")
+
+    def update_audio_stream(self):
+        # Logic to update the audio stream
+        print("Audio stream updated.")
+        
     def send_video(self):
         i = 0
         while not self.stop_event.is_set():
