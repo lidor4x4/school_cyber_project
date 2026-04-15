@@ -8,7 +8,7 @@ from globals import globals
 class Utils:
     global sqlite_file
     global fernet
-    sqlite_file = r"C:\Users\Pc2\Desktop\school_cyber_project\DB\final_project_db.sqlite"
+    sqlite_file = r"C:\Users\lidor\Desktop\school_project\school_cyber_project\DB\final_project_db.sqlite"
     
     FERNET_KEY = b'WmNayxAvMomFuoWRSyEtFaHhptS-nrodlSnZsvHpeoI='
     fernet = Fernet(FERNET_KEY)
@@ -34,7 +34,7 @@ class Utils:
     def decrypt_message(self, message):
         return fernet.decrypt(message).decode()
 
-    def handle_signup(self, email, password, username, user_type): 
+    def handle_signup(self, email, password, username, user_type, dr_specialty): 
         try:
             bytes = password.encode('utf-8')
             salt = bcrypt.gensalt()
@@ -44,8 +44,8 @@ class Utils:
                 verified = False
             conn = sqlite3.connect(sqlite_file)
             db_cursor = conn.cursor()
-            db_cursor.execute("""INSERT INTO Users (email, password, username, role, verified)
-    VALUES (?, ?, ?, ?, ?);""", (email, str(hashed_password.decode()), username, user_type, verified))
+            db_cursor.execute("""INSERT INTO Users (email, password, username, role, verified, dr_specialty)
+    VALUES (?, ?, ?, ?, ?, ?);""", (email, str(hashed_password.decode()), username, user_type, verified, dr_specialty))
 
             conn.commit()
             conn.close()
@@ -205,6 +205,27 @@ SELECT password FROM Users WHERE email = '{email}'
             print(f"Error fetching dr queue: {e}")
             return 
         
+    def get_dr_specialty_by_username(self, username):
+        try:
+            conn = sqlite3.connect(sqlite_file) 
+            cursor = conn.cursor()
+            cursor.execute("SELECT dr_specialty FROM Users WHERE username = ?",(username,))
+            dr_specialty_tup = cursor.fetchone()
+            if dr_specialty_tup and dr_specialty_tup[0] != None:
+                conn.commit()
+                conn.close()
+                return dr_specialty_tup[0]
+            
+            else:
+                conn.commit()
+                conn.close()
+                return "The dr specialty is empty"
+            
+        except Exception as e:
+            print(f"Error fetching dr specialty: {e}")
+            return 
+
+
     def add_to_dr_queue(self, dr_username, username):
         try:
             

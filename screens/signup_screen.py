@@ -2,7 +2,7 @@ import wx
 import re
 from globals import globals
 import utils.utils as utils
-
+import threading
 
 class SignupPanel(wx.Panel):
     def __init__(self, parent, switch_panel, send_to_server):
@@ -68,6 +68,20 @@ class SignupPanel(wx.Panel):
         self.chk_patient = wx.CheckBox(self, label="I'm a patient")
         self.chk_dr = wx.CheckBox(self, label="I'm a doctor")
 
+        self.dr_specialty_ctrl_error = wx.StaticText(self, label="")
+        self.dr_specialty_ctrl_error.SetForegroundColour(wx.RED)
+        self.sizer.Add(self.dr_specialty_ctrl_error, 0, wx.ALL | wx.CENTER, 10)
+
+
+        self.dr_specialty_ctrl = wx.TextCtrl(self, value="", size=(200, -1))
+        self.dr_specialty_ctrl.SetHint("What's your specialty: ")
+        self.sizer.Add(self.dr_specialty_ctrl, 0, wx.ALL | wx.CENTER, 10)
+        self.dr_specialty_ctrl.Hide()
+
+        self.chk_dr.Bind(wx.EVT_CHECKBOX, self.on_doctor_checked)
+
+
+
         self.sizer.Add(self.chk_patient, 0, wx.ALL | wx.CENTER, 5)
         self.sizer.Add(self.chk_dr, 0, wx.ALL | wx.CENTER, 5)
 
@@ -83,12 +97,22 @@ class SignupPanel(wx.Panel):
         self.back_btn.Bind(wx.EVT_BUTTON, lambda e: self.switch_panel("home"))
         self.signup_btn.Bind(wx.EVT_BUTTON, self.on_signup)
 
+    def on_doctor_checked(self, event):
+        if self.chk_dr.IsChecked():
+            # Show the specialty textbox
+            self.dr_specialty_ctrl.Show()
+        else:
+            self.dr_specialty_ctrl.Hide()
+
+        self.Layout()  
+
     def on_signup(self, event):
         # self.email_error.SetLabel("TEST")
         username = self.username_ctrl.GetValue()
         email = self.email_ctrl.GetValue()
         password = self.password_ctrl.GetValue()
         confirm_password = self.confirm_password_ctrl.GetValue()
+        dr_specialty = self.dr_specialty_ctrl.GetValue()
         errors = False
 
         # Input check
@@ -109,13 +133,26 @@ class SignupPanel(wx.Panel):
             self.slection_error.SetLabel("You must choose one user type")
             errors = True
 
+        if not self.chk_dr.IsChecked() and not self.chk_patient.IsChecked():
+            self.slection_error.SetLabel("You must choose a user type")
+            errors = True
+
+        if self.chk_dr.IsChecked() and dr_specialty == "":
+            self.dr_specialty_ctrl_error.SetLabel("You need to specify your specialty.")
+            errors = True
+
         if not errors:
+
+            if not dr_specialty:
+                dr_specialty = ""
+
             selected = ""
             if self.chk_patient.IsChecked(): 
                 selected = "patient"
             if self.chk_dr.IsChecked(): 
                 selected = "dr"
-            res = self.send_to_server(f"SIGN_UP, {email}, {password}, {username}, {selected}")
+
+            res = self.send_to_server(f"SIGN_UP, {email}, {password}, {username}, {selected}, {dr_specialty}")
             if "successful" in res:
                 globals["auth_state"] = True
                 globals["user_name"] = username

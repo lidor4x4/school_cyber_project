@@ -52,9 +52,9 @@ def tcp_server():
 
                     if data.startswith("SIGN_UP"):
                         fields = data.split(', ')[1:]  # Remove the 'SIGN_UP,' part and keep the rest
-                        email, password, username, user_type = map(str.strip, fields)  # remoe spaces and assign each var 
-                        print(f"Received sign up data: {email}, {password}, {username}, {user_type}")
-                        response = methods.handle_signup(email, password, username, user_type)
+                        email, password, username, user_type, dr_specialty = map(str.strip, fields)  # remoe spaces and assign each var 
+                        print(f"Received sign up data: {email}, {password}, {username}, {user_type}, {dr_specialty}")
+                        response = methods.handle_signup(email, password, username, user_type, dr_specialty)
                         print(f"Sign up response: {response}")
                         if response == "200":
                             clients_by_name[username] = sock
@@ -89,9 +89,7 @@ def tcp_server():
                     elif data.startswith("GET_QUEUE"):
                         fields = [x.strip() for x in data.split(',')]
                         dr_username = fields[1]
-                        
-                        print("dasdasd", fields)
-                        
+                                                
                         dr_queue = methods.get_dr_queue_by_username(dr_username)
                         sock.send(methods.encrypt_message(dr_queue))        
                     
@@ -103,6 +101,12 @@ def tcp_server():
                         dr_username_queue = data.split(",")[-1]
                         users_in_queue = methods.get_dr_queue_by_username(dr_username_queue)
                         sock.send(methods.encrypt_message(users_in_queue))
+
+                    elif data.startswith("GET_DR_SPECIALTY_BY_USERNAME"):
+                        dr_username_specialty = data.split(",")[-1]
+                        dr_specialty = methods.get_dr_specialty_by_username(dr_username_specialty)
+                        sock.send(methods.encrypt_message(dr_specialty))
+
 
                     elif data.startswith("ADD_TO_DR_QUEUE"):
                         user_username = data.split(",")[-1]
