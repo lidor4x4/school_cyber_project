@@ -73,7 +73,6 @@ class ScheduleMeetingPanel(wx.Panel):
         card = wx.Panel(self.scroll_panel, style=wx.BORDER_SIMPLE)
         card.SetBackgroundColour(wx.Colour(245, 245, 245))
 
-        # Use a proportionate size to make sure everything fits nicely
         card_sizer = wx.BoxSizer(wx.VERTICAL)
 
         dr_username_text = wx.StaticText(
@@ -82,7 +81,7 @@ class ScheduleMeetingPanel(wx.Panel):
             style=wx.ALIGN_CENTER | wx.ST_NO_AUTORESIZE
         )
         dr_username_text.SetFont(self.card_title_font)
-        dr_username_text.Wrap(200)  # Wrap the text so it doesn't overflow
+        dr_username_text.Wrap(200)  
         card_sizer.Add(dr_username_text, 0, wx.ALIGN_CENTER | wx.ALL, 10)
 
         dr_specialty = self.send_to_server(f"GET_DR_SPECIALTY_BY_USERNAME,{dr_username}")
@@ -114,7 +113,6 @@ class ScheduleMeetingPanel(wx.Panel):
 
         card.SetSizer(card_sizer)
 
-        # Adjust card sizes to ensure they fit in the grid
         self.grid_sizer.Add(card, 0, wx.EXPAND | wx.ALL, 5)
 
         card.Bind(wx.EVT_ENTER_WINDOW, lambda evt: self.on_card_hover(card, True))
