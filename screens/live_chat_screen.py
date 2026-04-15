@@ -283,7 +283,7 @@ class LiveChatPanel(wx.Panel):
                 self.audio_udp.sendto(data, (self.server_ip, AUDIO_PORT))
             except:
                 pass
-
+            
         with sd.InputStream(channels=1, samplerate=44100,
                             blocksize=BLOCKSIZE, callback=callback):
             while not self.stop_event.is_set():

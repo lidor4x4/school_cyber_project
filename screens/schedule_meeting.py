@@ -29,20 +29,20 @@ class ScheduleMeetingPanel(wx.Panel):
         self.loading_text.SetFont(self.title_font)
         self.sizer.Add(self.loading_text, 0, wx.ALIGN_CENTER | wx.ALL, 20)
 
-        self.grid_sizer = wx.GridSizer(cols=4, hgap=20, vgap=20)
+        self.grid_sizer = wx.GridSizer(cols=3, hgap=20, vgap=20)
 
-        self.grid_container = wx.Panel(self)
-        self.grid_container.SetSizer(self.grid_sizer)
-        self.grid_container.Hide()
+        # Create a ScrolledWindow for the doctor cards to be displayed in a scrollable area
+        self.scroll_panel = wx.ScrolledWindow(self, size=(500, 500))  # Set initial size
+        self.scroll_panel.SetScrollRate(5, 5)  # Control scrolling speed
+        self.scroll_panel.SetSizer(self.grid_sizer)
 
-        self.sizer.Add(self.grid_container, 1, wx.EXPAND | wx.ALL, 20)
+        self.sizer.Add(self.scroll_panel, 1, wx.EXPAND | wx.ALL, 20)
 
         self.SetSizer(self.sizer)
         self.Layout()
 
         threading.Thread(target=self.load_users, daemon=True).start()
 
- 
     def load_users(self):
         try:
             users_raw = self.send_to_server("GET_VERIFIED_DR_USERS")
@@ -53,7 +53,6 @@ class ScheduleMeetingPanel(wx.Panel):
         except Exception as e:
             wx.CallAfter(wx.MessageBox, f"Error loading doctors: {e}")
 
-   
     def add_users(self, users):
         self.Freeze()
 
@@ -63,43 +62,39 @@ class ScheduleMeetingPanel(wx.Panel):
         if hasattr(self, "loading_text") and self.loading_text:
             self.loading_text.Destroy()
 
-        self.grid_container.Show()
+        self.scroll_panel.Show()  # Show the scrollable area
 
         self.Layout()
 
         self.Thaw()
         self.Refresh()
 
-
     def create_doctor_card(self, dr_username):
-        card = wx.Panel(self.grid_container, style=wx.BORDER_SIMPLE)
+        card = wx.Panel(self.scroll_panel, style=wx.BORDER_SIMPLE)
         card.SetBackgroundColour(wx.Colour(245, 245, 245))
-        card.SetMinSize((250, 150))
 
+        # Use a proportionate size to make sure everything fits nicely
         card_sizer = wx.BoxSizer(wx.VERTICAL)
 
-  
         dr_username_text = wx.StaticText(
             card,
             label=f"Dr. {dr_username}",
             style=wx.ALIGN_CENTER | wx.ST_NO_AUTORESIZE
         )
         dr_username_text.SetFont(self.card_title_font)
-        dr_username_text.Wrap(220)
+        dr_username_text.Wrap(200)  # Wrap the text so it doesn't overflow
         card_sizer.Add(dr_username_text, 0, wx.ALIGN_CENTER | wx.ALL, 10)
 
-
-        dr_specialty =self.send_to_server(f"GET_DR_SPECIALTY_BY_USERNAME,{dr_username}")
+        dr_specialty = self.send_to_server(f"GET_DR_SPECIALTY_BY_USERNAME,{dr_username}")
         dr_username_specialty = wx.StaticText(
             card,
             label=f"Specializes in: {dr_specialty}",
             style=wx.ALIGN_CENTER | wx.ST_NO_AUTORESIZE
         )
         dr_username_specialty.SetFont(self.card_title_font)
-        dr_username_specialty.Wrap(220)
+        dr_username_specialty.Wrap(200)
         card_sizer.Add(dr_username_specialty, 0, wx.ALIGN_CENTER | wx.ALL, 10)
 
-   
         users_in_queue = self.send_to_server(
             f"GET_DR_QUEUE_BY_USERNAME,{dr_username}"
         )
@@ -119,16 +114,15 @@ class ScheduleMeetingPanel(wx.Panel):
 
         card.SetSizer(card_sizer)
 
+        # Adjust card sizes to ensure they fit in the grid
+        self.grid_sizer.Add(card, 0, wx.EXPAND | wx.ALL, 5)
+
         card.Bind(wx.EVT_ENTER_WINDOW, lambda evt: self.on_card_hover(card, True))
         card.Bind(wx.EVT_LEAVE_WINDOW, lambda evt: self.on_card_hover(card, False))
 
-        self.grid_sizer.Add(card, 0, wx.EXPAND | wx.ALL, 10)
-
-  
     def on_card_hover(self, card, hover):
         card.SetBackgroundColour(wx.Colour(230, 230, 230) if hover else wx.Colour(245, 245, 245))
         card.Refresh()
-
 
     def verify_user_click(self, dr_username):
         try:
