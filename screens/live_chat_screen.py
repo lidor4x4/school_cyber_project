@@ -12,7 +12,6 @@ AUDIO_PORT = 12347
 MAX_UDP_SIZE = 65535
 BLOCKSIZE = 2048
 
-
 class LiveChatPanel(wx.Panel):
     def __init__(self, parent, switch_panel, send_to_server, server_ip):
         super().__init__(parent)
@@ -58,6 +57,7 @@ class LiveChatPanel(wx.Panel):
 
         self.main_sizer.AddStretchSpacer(1)
 
+        controls_wrapper = wx.BoxSizer(wx.HORIZONTAL)
         controls = wx.BoxSizer(wx.HORIZONTAL)
 
         self.disable_video_btn = wx.Button(self, label="Stop Video", size=(160, 56))
@@ -68,14 +68,24 @@ class LiveChatPanel(wx.Panel):
             style=wx.BORDER_NONE
         )
 
-        controls.Add(self.disable_video_btn, 0, wx.ALL, 10)
-        controls.Add(self.disable_audio_btn, 0, wx.ALL, 10)
+        controls.Add(self.disable_video_btn, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 10)
+        controls.Add(self.disable_audio_btn, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 10)
 
-        self.main_sizer.Add(controls, 0, wx.ALIGN_CENTER)
+        controls_wrapper.AddStretchSpacer()
+        controls_wrapper.Add(controls, 0, wx.ALIGN_CENTER)
+        controls_wrapper.AddStretchSpacer()
+
+        self.main_sizer.Add(controls_wrapper, 0, wx.EXPAND | wx.BOTTOM, 10)
+
+        queue_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        queue_sizer.AddStretchSpacer()
 
         self.queue_toggle_btn = wx.Button(self, label="See Queue", size=(140, 40))
         self.queue_toggle_btn.Bind(wx.EVT_BUTTON, self.toggle_queue)
-        self.main_sizer.Add(self.queue_toggle_btn, 0, wx.TOP | wx.BOTTOM, 10)
+
+        queue_sizer.Add(self.queue_toggle_btn, 0, wx.RIGHT | wx.BOTTOM, 20)
+
+        self.main_sizer.Add(queue_sizer, 0, wx.EXPAND)
 
         self.queue_panel = wx.Panel(self)
         self.queue_panel.Hide()
@@ -84,27 +94,20 @@ class LiveChatPanel(wx.Panel):
         self.queue_sizer = wx.BoxSizer(wx.VERTICAL)
         self.queue_panel.SetSizer(self.queue_sizer)
 
-        self.main_sizer.Add(self.queue_panel, 0, wx.EXPAND | wx.ALL, 10)
+        self.main_sizer.Add(self.queue_panel, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 20)
 
         self.SetSizer(self.main_sizer)
 
         self.disable_video_btn.Bind(wx.EVT_BUTTON, self.toggle_video)
         self.disable_audio_btn.Bind(wx.EVT_BUTTON, self.toggle_audio)
 
-        # =========================
-        # FIX: SEPARATE SOCKETS
-        # =========================
-        self.video_tx = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.video_rx = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.video_udp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.video_udp.bind(("", 0))
+        self.video_udp.settimeout(0.5)
 
-        self.audio_tx = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.audio_rx = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-
-        self.video_rx.bind(("", 0))
-        self.audio_rx.bind(("", 0))
-
-        self.video_rx.settimeout(0.2)
-        self.audio_rx.settimeout(0.2)
+        self.audio_udp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.audio_udp.bind(("", 0))
+        self.audio_udp.settimeout(0.5)
 
         self.cap = cv2.VideoCapture(0)
 
@@ -115,7 +118,6 @@ class LiveChatPanel(wx.Panel):
         threading.Thread(target=self.send_audio, daemon=True).start()
         threading.Thread(target=self.receive_audio, daemon=True).start()
 
-    # ================= QUEUE =================
     def toggle_queue(self, _):
         self.queue_visible = not self.queue_visible
 
@@ -130,75 +132,83 @@ class LiveChatPanel(wx.Panel):
         self.main_sizer.Layout()
 
     def load_queue(self):
-        try:
-            username = globals["user_name"]
-            response = self.send_to_server(f"GET_QUEUE,{username}")
-            wx.CallAfter(self.refresh_queue_ui, response)
-        except:
-            pass
+        username = globals["user_name"]
+        response = self.send_to_server(f"GET_QUEUE,{username}")
+        wx.CallAfter(self.refresh_queue_ui, response)
 
     def refresh_queue_ui(self, response):
         if not self.queue_visible:
             return
+        
+        self.queue_sizer.Clear()
 
-        self.queue_sizer.Clear(True)
-
-        if "empty" in response.lower():
-            self.queue_sizer.Add(wx.StaticText(self.queue_panel, label="No patients"), 0, wx.ALL, 10)
+        if "The queue is empty" in response:
+            txt = wx.StaticText(self.queue_panel, label="No patients in queue.")
+            self.queue_sizer.Add(txt, 0, wx.ALIGN_RIGHT | wx.ALL, 10)
         else:
-            for p in response.split(","):
-                self.add_patient_row(p.strip())
+            patients = response.split(",")
+            for patient in patients:
+                self.add_patient_row(patient.strip())
 
         self.queue_panel.Layout()
         self.main_sizer.Layout()
 
     def add_patient_row(self, patient_name):
         row = wx.BoxSizer(wx.HORIZONTAL)
+        row.AddStretchSpacer()
 
-        name = wx.StaticText(self.queue_panel, label=patient_name)
-        acc = wx.Button(self.queue_panel, label="Accept")
-        kick = wx.Button(self.queue_panel, label="Kick")
+        name_label = wx.StaticText(self.queue_panel, label=patient_name)
+        accept_btn = wx.Button(self.queue_panel, label="Accept", size=(70, 30))
+        kick_btn = wx.Button(self.queue_panel, label="Kick", size=(70, 30))
 
-        acc.Bind(wx.EVT_BUTTON, lambda e: self.accept_patient(patient_name))
-        kick.Bind(wx.EVT_BUTTON, lambda e: self.kick_patient(patient_name))
+        accept_btn.Bind(wx.EVT_BUTTON, lambda e, p=patient_name: self.accept_patient(p))
+        kick_btn.Bind(wx.EVT_BUTTON, lambda e, p=patient_name: self.kick_patient(p))
 
-        row.Add(name, 0, wx.ALL, 5)
-        row.Add(acc, 0, wx.ALL, 5)
-        row.Add(kick, 0, wx.ALL, 5)
+        row.Add(name_label, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 10)
+        row.Add(accept_btn, 0, wx.RIGHT, 5)
+        row.Add(kick_btn, 0)
 
-        self.queue_sizer.Add(row)
+        self.queue_sizer.Add(row, 0, wx.EXPAND | wx.BOTTOM, 5)
 
-    # ================= IMPORTANT FIX =================
-    # reset sockets when accept happens (THIS FIXES YOUR FREEZE)
     def accept_patient(self, patient_name):
         self.send_to_server(f"ACCEPT_PATIENT,{patient_name}")
-        self.reset_sockets()
+        wx.CallAfter(self.update_video_stream)
+        wx.CallAfter(self.update_audio_stream)
 
     def kick_patient(self, patient_name):
         self.send_to_server(f"KICK_PATIENT,{patient_name}")
+        wx.CallAfter(self.update_video_stream)
 
-    def reset_sockets(self):
+    def handle_go_back(self, _):
+        self.stop_event.set()
+        self.switch_panel("home")
+
+    def on_destroy(self, event):
+        self.stop_event.set()
         try:
-            self.video_rx.close()
-            self.audio_rx.close()
-
-            self.video_rx = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            self.audio_rx = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-
-            self.video_rx.bind(("", 0))
-            self.audio_rx.bind(("", 0))
-
-            self.video_rx.settimeout(0.2)
-            self.audio_rx.settimeout(0.2)
+            self.cap.release()
+            self.video_udp.close()
+            self.audio_udp.close()
         except:
             pass
+        event.Skip()
 
-    # ================= VIDEO =================
+    def toggle_video(self, _):
+        self.is_video_disabled = not self.is_video_disabled
+        self.disable_video_btn.SetLabel("Start Video" if self.is_video_disabled else "Stop Video")
+
+    def toggle_audio(self, _):
+        self.is_audio_disabled = not self.is_audio_disabled
+        self.disable_audio_btn.SetBitmap(
+            self.muted_mic_bitmap if self.is_audio_disabled else self.unmuted_mic_bitmap
+        )
+
     def send_video(self):
         while not self.stop_event.is_set():
             try:
                 if self.is_video_disabled:
                     frame = self.disabled_np
+                    wx.CallAfter(self.self_video.SetBitmap, self.video_off_bmp)
                 else:
                     ret, frame = self.cap.read()
                     if not ret:
@@ -208,46 +218,46 @@ class LiveChatPanel(wx.Panel):
                     frame = cv2.flip(frame, 1)
 
                     rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                    wx.CallAfter(self.self_video.SetBitmap,
-                                 wx.Bitmap.FromBuffer(600, 400, rgb))
+                    bmp = wx.Bitmap.FromBuffer(600, 400, rgb)
+                    wx.CallAfter(self.self_video.SetBitmap, bmp)
 
-                _, buf = cv2.imencode(".jpg", frame)
-                self.video_tx.sendto(buf.tobytes(), (self.server_ip, VIDEO_PORT))
+                _, buf = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 70])
+                self.video_udp.sendto(buf.tobytes(), (self.server_ip, VIDEO_PORT))
 
                 time.sleep(0.04)
 
             except:
-                continue
+                if self.stop_event.is_set():
+                    break
 
     def receive_video(self):
         while not self.stop_event.is_set():
             try:
-                data, _ = self.video_rx.recvfrom(MAX_UDP_SIZE)
+                data, _ = self.video_udp.recvfrom(MAX_UDP_SIZE)
                 img = cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_COLOR)
                 if img is None:
                     continue
 
                 rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
                 h, w = rgb.shape[:2]
+                bmp = wx.Bitmap.FromBuffer(w, h, rgb)
 
-                wx.CallAfter(self.remote_video.SetBitmap,
-                             wx.Bitmap.FromBuffer(w, h, rgb))
+                wx.CallAfter(self.remote_video.SetBitmap, bmp)
 
-            except socket.timeout:
-                continue
             except:
-                continue
+                if self.stop_event.is_set():
+                    break
 
-    # ================= AUDIO =================
     def send_audio(self):
         def callback(indata, frames, time_info, status):
             if self.stop_event.is_set() or self.is_audio_disabled:
                 return
             try:
                 data = (indata * 32767).astype(np.int16).tobytes()
-                self.audio_tx.sendto(data, (self.server_ip, AUDIO_PORT))
+                self.audio_udp.sendto(data, (self.server_ip, AUDIO_PORT))
             except:
-                pass
+                if self.stop_event.is_set():
+                    return
 
         with sd.InputStream(channels=1, samplerate=44100,
                             blocksize=BLOCKSIZE, callback=callback):
@@ -261,47 +271,34 @@ class LiveChatPanel(wx.Panel):
 
         while not self.stop_event.is_set():
             try:
-                data, _ = self.audio_rx.recvfrom(BLOCKSIZE * 2)
-                audio = np.frombuffer(data, np.int16).astype(np.float32) / 32767
-                stream.write(audio)
-            except socket.timeout:
-                continue
+                data, _ = self.audio_udp.recvfrom(BLOCKSIZE * 2)
             except:
+                if self.stop_event.is_set():
+                    break
                 continue
+
+            audio = np.frombuffer(data, np.int16).astype(np.float32) / 32767
+            stream.write(audio)
 
         stream.stop()
         stream.close()
 
-    # ================= CLEAN =================
-    def handle_go_back(self, _):
-        self.stop_event.set()
-        self.switch_panel("home")
-
-    def on_destroy(self, event):
-        self.stop_event.set()
-        try:
-            self.cap.release()
-            self.video_tx.close()
-            self.video_rx.close()
-            self.audio_tx.close()
-            self.audio_rx.close()
-        except:
-            pass
-        event.Skip()
-
-    def toggle_video(self, _):
-        self.is_video_disabled = not self.is_video_disabled
-
-    def toggle_audio(self, _):
-        self.is_audio_disabled = not self.is_audio_disabled
-
-    # ================= UTILS =================
     def load_icon_normalized(self, path, box_size):
-        img = wx.Image(path)
+        img = wx.Image(path, wx.BITMAP_TYPE_ANY)
         iw, ih = img.GetSize()
-        s = min(box_size / iw, box_size / ih)
-        return wx.Bitmap(img.Scale(int(iw*s), int(ih*s)))
+        scale = min(box_size / iw, box_size / ih)
+        img = img.Scale(int(iw * scale), int(ih * scale), wx.IMAGE_QUALITY_HIGH)
+        return wx.Bitmap(img)
 
     def load_video_off_image(self, w, h):
-        img = wx.Image("disabled_video_photo.png")
-        return wx.Bitmap(img.Scale(w, h)), None
+        img = wx.Image("disabled_video_photo.png", wx.BITMAP_TYPE_ANY)
+        img = img.Scale(w, h, wx.IMAGE_QUALITY_HIGH)
+        bmp = wx.Bitmap(img)
+        np_img = self.wx_image_to_cv(img)
+        return bmp, np_img
+
+    def wx_image_to_cv(self, wx_img):
+        w, h = wx_img.GetWidth(), wx_img.GetHeight()
+        data = wx_img.GetData()
+        img = np.frombuffer(data, dtype=np.uint8).reshape((h, w, 3))
+        return cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
