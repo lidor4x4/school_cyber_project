@@ -142,8 +142,6 @@ class LiveChatPanel(wx.Panel):
         
         self.queue_sizer.Clear()
 
-        print(response)
-
         if "The queue is empty" in response:
             txt = wx.StaticText(self.queue_panel, label="No patients in queue.")
             self.queue_sizer.Add(txt, 0, wx.ALIGN_RIGHT | wx.ALL, 10)
@@ -173,10 +171,7 @@ class LiveChatPanel(wx.Panel):
         self.queue_sizer.Add(row, 0, wx.EXPAND | wx.BOTTOM, 5)
 
     def accept_patient(self, patient_name):
-        # Simulating accepting patient
         self.send_to_server(f"ACCEPT_PATIENT,{patient_name}")
-        
-        # Update the UI in the main thread
         wx.CallAfter(self.update_video_stream)
         wx.CallAfter(self.update_audio_stream)
 
@@ -194,9 +189,99 @@ class LiveChatPanel(wx.Panel):
             self.cap.release()
             self.video_udp.close()
             self.audio_udp.close()
-        except Exception as e:
-            print(f"Error releasing resources: {e}")
+        except:
+            pass
         event.Skip()
+
+    def toggle_video(self, _):
+        self.is_video_disabled = not self.is_video_disabled
+        self.disable_video_btn.SetLabel("Start Video" if self.is_video_disabled else "Stop Video")
+
+    def toggle_audio(self, _):
+        self.is_audio_disabled = not self.is_audio_disabled
+        self.disable_audio_btn.SetBitmap(
+            self.muted_mic_bitmap if self.is_audio_disabled else self.unmuted_mic_bitmap
+        )
+
+    def send_video(self):
+        while not self.stop_event.is_set():
+            try:
+                if self.is_video_disabled:
+                    frame = self.disabled_np
+                    wx.CallAfter(self.self_video.SetBitmap, self.video_off_bmp)
+                else:
+                    ret, frame = self.cap.read()
+                    if not ret:
+                        continue
+
+                    frame = cv2.resize(frame, (600, 400))
+                    frame = cv2.flip(frame, 1)
+
+                    rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                    bmp = wx.Bitmap.FromBuffer(600, 400, rgb)
+                    wx.CallAfter(self.self_video.SetBitmap, bmp)
+
+                _, buf = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 70])
+                self.video_udp.sendto(buf.tobytes(), (self.server_ip, VIDEO_PORT))
+
+                time.sleep(0.04)
+
+            except:
+                if self.stop_event.is_set():
+                    break
+
+    def receive_video(self):
+        while not self.stop_event.is_set():
+            try:
+                data, _ = self.video_udp.recvfrom(MAX_UDP_SIZE)
+                img = cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_COLOR)
+                if img is None:
+                    continue
+
+                rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+                h, w = rgb.shape[:2]
+                bmp = wx.Bitmap.FromBuffer(w, h, rgb)
+
+                wx.CallAfter(self.remote_video.SetBitmap, bmp)
+
+            except:
+                if self.stop_event.is_set():
+                    break
+
+    def send_audio(self):
+        def callback(indata, frames, time_info, status):
+            if self.stop_event.is_set() or self.is_audio_disabled:
+                return
+            try:
+                data = (indata * 32767).astype(np.int16).tobytes()
+                self.audio_udp.sendto(data, (self.server_ip, AUDIO_PORT))
+            except:
+                if self.stop_event.is_set():
+                    return
+
+        with sd.InputStream(channels=1, samplerate=44100,
+                            blocksize=BLOCKSIZE, callback=callback):
+            while not self.stop_event.is_set():
+                sd.sleep(200)
+
+    def receive_audio(self):
+        stream = sd.OutputStream(channels=1, samplerate=44100,
+                                 blocksize=BLOCKSIZE, dtype="float32")
+        stream.start()
+
+        while not self.stop_event.is_set():
+            try:
+                data, _ = self.audio_udp.recvfrom(BLOCKSIZE * 2)
+            except:
+                if self.stop_event.is_set():
+                    break
+                continue
+
+            audio = np.frombuffer(data, np.int16).astype(np.float32) / 32767
+            stream.write(audio)
+
+        stream.stop()
+        stream.close()
 
     def load_icon_normalized(self, path, box_size):
         img = wx.Image(path, wx.BITMAP_TYPE_ANY)
@@ -217,101 +302,3 @@ class LiveChatPanel(wx.Panel):
         data = wx_img.GetData()
         img = np.frombuffer(data, dtype=np.uint8).reshape((h, w, 3))
         return cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
-
-    def toggle_video(self, _):
-        self.is_video_disabled = not self.is_video_disabled
-        self.disable_video_btn.SetLabel("Start Video" if self.is_video_disabled else "Stop Video")
-
-    def toggle_audio(self, _):
-        self.is_audio_disabled = not self.is_audio_disabled
-        self.disable_audio_btn.SetBitmap(
-            self.muted_mic_bitmap if self.is_audio_disabled else self.unmuted_mic_bitmap
-        )
-
-    def update_video_stream(self):
-        # Logic to update the video stream, could include re-initializing or refreshing components
-        print("Video stream updated.")
-
-    def update_audio_stream(self):
-        # Logic to update the audio stream
-        print("Audio stream updated.")
-        
-    def send_video(self):
-        i = 0
-        while not self.stop_event.is_set():
-            try:
-                if self.is_video_disabled:
-                    frame = self.disabled_np
-                    wx.CallAfter(self.self_video.SetBitmap, self.video_off_bmp)
-                else:
-                    ret, frame = self.cap.read()
-                    if not ret:
-                        continue
-
-                    frame = cv2.resize(frame, (600, 400))
-                    frame = cv2.flip(frame, 1)
-
-                    rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                    bmp = wx.Bitmap.FromBuffer(600, 400, rgb)
-                    wx.CallAfter(self.self_video.SetBitmap, bmp)
-
-                _, buf = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 70])
-                try:
-                    self.video_udp.sendto(buf.tobytes(), (self.server_ip, VIDEO_PORT))
-                except Exception as e:
-                    print(f"Video send error: {e}")
-
-                time.sleep(0.04)  # 25 FPS
-            except Exception as e:
-                print(f"Video thread error: {e}")
-
-    def receive_video(self):
-        while not self.stop_event.is_set():
-            try:
-                data, _ = self.video_udp.recvfrom(MAX_UDP_SIZE)
-                img = cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_COLOR)
-                if img is None:
-                    continue
-
-                rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-                h, w = rgb.shape[:2]
-                bmp = wx.Bitmap.FromBuffer(w, h, rgb)
-
-                wx.CallAfter(self.remote_video.SetBitmap, bmp)
-
-            except Exception as e:
-                print(f"Error receiving video: {e}")
-                continue
-
-    def send_audio(self):
-        def callback(indata, frames, time_info, status):
-            if self.stop_event.is_set() or self.is_audio_disabled:
-                return
-            try:
-                data = (indata * 32767).astype(np.int16).tobytes()
-                self.audio_udp.sendto(data, (self.server_ip, AUDIO_PORT))
-            except Exception as e:
-                print(f"Audio send error: {e}")
-            
-        with sd.InputStream(channels=1, samplerate=44100,
-                            blocksize=BLOCKSIZE, callback=callback):
-            while not self.stop_event.is_set():
-                sd.sleep(200)
-
-    def receive_audio(self):
-        stream = sd.OutputStream(channels=1, samplerate=44100,
-                                 blocksize=BLOCKSIZE, dtype="float32")
-        stream.start()
-
-        while not self.stop_event.is_set():
-            try:
-                data, _ = self.audio_udp.recvfrom(BLOCKSIZE * 2)
-            except Exception as e:
-                print(f"Audio receive error: {e}")
-                continue
-
-            audio = np.frombuffer(data, np.int16).astype(np.float32) / 32767
-            stream.write(audio)
-
-        stream.stop()
-        stream.close()

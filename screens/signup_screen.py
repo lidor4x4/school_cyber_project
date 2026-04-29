@@ -79,9 +79,9 @@ class SignupPanel(wx.Panel):
         self.dr_specialty_ctrl.Hide()
 
         self.chk_dr.Bind(wx.EVT_CHECKBOX, self.on_doctor_checked)
-
-
-
+        
+        
+        
         self.sizer.Add(self.chk_patient, 0, wx.ALL | wx.CENTER, 5)
         self.sizer.Add(self.chk_dr, 0, wx.ALL | wx.CENTER, 5)
 
