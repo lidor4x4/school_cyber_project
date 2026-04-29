@@ -126,11 +126,16 @@ class ScheduleMeetingPanel(wx.Panel):
         try:
             username = globals["user_name"]
 
+            print("dr username", dr_username)
+            print("username", username)
+
             print(f"TEST: ADD_TO_DR_QUEUE,{dr_username},{username}")
 
             returned = self.send_to_server(
                 f"ADD_TO_DR_QUEUE,{dr_username},{username}"
             )
+
+            print("returned", returned)
 
             if returned == "User already in queue":
                 wx.MessageBox(

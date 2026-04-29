@@ -16,22 +16,19 @@ class HomePanel(wx.Panel):
         self.font = wx.Font(22, wx.DEFAULT, wx.NORMAL, wx.NORMAL, False, "Arial")
         self.sizer = wx.BoxSizer(wx.VERTICAL)
 
+        image_file = r'C:\Users\Pc2\Desktop\school_cyber_project\assets\BG.jpg'
+        self.bg_image = wx.Image(image_file, wx.BITMAP_TYPE_ANY)
+
+        self.Bind(wx.EVT_PAINT, self.on_paint)
+
         # Title
         self.home_screen_text = wx.StaticText(self, label="Home Page")
         self.home_screen_text.SetFont(self.font)
         self.sizer.Add(self.home_screen_text, 0, wx.ALL | wx.CENTER, 10)
 
-        def handle_sign_out(self):
-            globals["auth_state"] = False
-            globals["user_name"] = ""
-            globals["user_role"] = ""
-            globals["is_admin"] = False
-            switch_panel("home")
-
-
         print(self.auth_state)
         print(self.user_role)
-        #print("dsadsa", globals['user_name'])
+
         # If the user is logged in
         if self.auth_state:
             user_name = globals["user_name"]
@@ -39,12 +36,12 @@ class HomePanel(wx.Panel):
             self.user_name_static_text = wx.StaticText(self, label=f"Welcome: {user_name}")
             self.user_name_static_text.SetFont(self.font)
             self.sizer.Add(self.user_name_static_text, 0, wx.ALL | wx.CENTER, 10)
+
             sign_out_btn = wx.Button(self, label="Sign Out")
-            sign_out_btn.Bind(wx.EVT_BUTTON, handle_sign_out)
+            sign_out_btn.Bind(wx.EVT_BUTTON, self.handle_sign_out)
             self.sizer.Add(sign_out_btn, 0, wx.RIGHT, 5)
 
-           
-            if user_name.strip() == "Admin":  
+            if user_name.strip() == "Admin":
                 self.live_chat_btn = wx.Button(self, label="Live Chat")
                 self.sizer.Add(self.live_chat_btn, 0, wx.ALL | wx.CENTER, 5)
                 self.live_chat_btn.Bind(wx.EVT_BUTTON, lambda e: self.switch_panel("live_chat"))
@@ -54,15 +51,13 @@ class HomePanel(wx.Panel):
                 self.verify_dr_btn.Bind(wx.EVT_BUTTON, lambda e: self.switch_panel("verify_doctor_screen"))
 
                 go_schedule_meeting_btn = wx.Button(self, label="Schedule a meeting")
-                go_schedule_meeting_btn.Bind(wx.EVT_BUTTON, lambda evt,: self.switch_panel("schedule_meeting"))
+                go_schedule_meeting_btn.Bind(wx.EVT_BUTTON, lambda evt: self.switch_panel("schedule_meeting"))
                 self.sizer.Add(go_schedule_meeting_btn, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 5)
 
-
-            # If the user is a doctor
             elif self.user_role == "dr":
                 verify_status = send_to_server(f"VERIFY,{user_name}")
                 print("Verify Status", verify_status)
-                if send_to_server(f"VERIFY,{user_name}") == "0":
+                if verify_status == "0":
                     self.not_verified_text = wx.StaticText(self, label=f"{user_name}, you aren't verified yet.")
                     self.not_verified_text.SetFont(self.font)
                     self.sizer.Add(self.not_verified_text, 0, wx.ALL | wx.CENTER, 10)
@@ -70,18 +65,16 @@ class HomePanel(wx.Panel):
                     self.live_chat_btn = wx.Button(self, label="Live Chat")
                     self.sizer.Add(self.live_chat_btn, 0, wx.ALL | wx.CENTER, 5)
                     self.live_chat_btn.Bind(wx.EVT_BUTTON, self.handle_live_chat_screen)
-            # Other authenticated users
+
             else:
                 self.live_chat_btn = wx.Button(self, label="Live Chat")
                 self.sizer.Add(self.live_chat_btn, 0, wx.ALL | wx.CENTER, 5)
                 self.live_chat_btn.Bind(wx.EVT_BUTTON, self.handle_live_chat_screen)
+
                 go_schedule_meeting_btn = wx.Button(self, label="Schedule a Meeting")
-                go_schedule_meeting_btn.Bind(wx.EVT_BUTTON, lambda evt,: self.switch_panel("schedule_meeting"))
+                go_schedule_meeting_btn.Bind(wx.EVT_BUTTON, lambda evt: self.switch_panel("schedule_meeting"))
                 self.sizer.Add(go_schedule_meeting_btn, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 5)
 
-
-
-        # If the user isn't logged in
         else:
             self.login_btn = wx.Button(self, label="Login")
             self.signup_btn = wx.Button(self, label="Sign Up")
@@ -93,8 +86,26 @@ class HomePanel(wx.Panel):
 
         self.SetSizer(self.sizer)
 
+    def on_paint(self, event):
+        dc = wx.BufferedPaintDC(self)
+        dc.Clear()
+
+        panel_width, panel_height = self.GetSize()
+        image = self.bg_image.Scale(panel_width, panel_height, wx.IMAGE_QUALITY_HIGH)
+        bitmap = image.ConvertToBitmap()
+
+        dc.DrawBitmap(bitmap, 0, 0)
+
+    def handle_sign_out(self, event):
+        globals["auth_state"] = False
+        globals["user_name"] = ""
+        globals["user_role"] = ""
+        globals["is_admin"] = False
+        self.switch_panel("home")
+
     def handle_live_chat_screen(self, event):
         if globals["user_role"] == "dr":
             self.switch_panel("live_chat")
         else:
             self.switch_panel("waiting_room")
+

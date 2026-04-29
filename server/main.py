@@ -116,7 +116,10 @@ def tcp_server():
                     elif data.startswith("ADD_TO_DR_QUEUE"):
                         user_username = data.split(",")[-1]
                         add_queue_dr_username = data.split(",")[-2]
+                        print("server username", user_username)
+                        print("Server Dr username", add_queue_dr_username)
                         ret = methods.add_to_dr_queue(add_queue_dr_username, user_username)
+                        print("rettttttttttttttttt", ret)
                         sock.send(methods.encrypt_message(ret))
 
                     elif data.startswith("ACCEPT_PATIENT"):

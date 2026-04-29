@@ -249,8 +249,11 @@ SELECT password FROM Users WHERE email = '{email}'
 
             cursor.execute("UPDATE Users SET clients_in_line = ? WHERE username = ?",(dr_queue, dr_username))
 
+
             conn.commit()
             conn.close()
+
+            return "User added to queue"
 
         except Exception as e:
             print(f"Error fetching dr queue: {e}")
