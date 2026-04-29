@@ -12,6 +12,7 @@ AUDIO_PORT = 12347
 MAX_UDP_SIZE = 65535
 BLOCKSIZE = 2048
 
+
 class LiveChatPanel(wx.Panel):
     def __init__(self, parent, switch_panel, send_to_server, server_ip):
         super().__init__(parent)
@@ -25,6 +26,7 @@ class LiveChatPanel(wx.Panel):
         self.queue_visible = False
 
         self.stop_event = threading.Event()
+        self._alive = True
 
         VIDEO_W, VIDEO_H = 600, 400
         ICON_BOX = 64
@@ -118,6 +120,37 @@ class LiveChatPanel(wx.Panel):
         threading.Thread(target=self.send_audio, daemon=True).start()
         threading.Thread(target=self.receive_audio, daemon=True).start()
 
+    # ---------------- SAFE EXIT ----------------
+    def handle_go_back(self, _):
+        self._alive = False
+        self.stop_event.set()
+
+        try:
+            self.cap.release()
+        except:
+            pass
+
+        try:
+            self.video_udp.close()
+            self.audio_udp.close()
+        except:
+            pass
+
+        time.sleep(0.15)
+        self.switch_panel("home")
+
+    def on_destroy(self, event):
+        self._alive = False
+        self.stop_event.set()
+        try:
+            self.cap.release()
+            self.video_udp.close()
+            self.audio_udp.close()
+        except:
+            pass
+        event.Skip()
+
+    # ---------------- QUEUE ----------------
     def toggle_queue(self, _):
         self.queue_visible = not self.queue_visible
 
@@ -139,12 +172,12 @@ class LiveChatPanel(wx.Panel):
     def refresh_queue_ui(self, response):
         if not self.queue_visible:
             return
-        
+
         self.queue_sizer.Clear()
 
         if "The queue is empty" in response:
             txt = wx.StaticText(self.queue_panel, label="No patients in queue.")
-            self.queue_sizer.Add(txt, 0, wx.ALIGN_RIGHT | wx.ALL, 10)
+            self.queue_sizer.Add(txt, 0, wx.ALL, 10)
         else:
             patients = response.split(",")
             for patient in patients:
@@ -155,7 +188,6 @@ class LiveChatPanel(wx.Panel):
 
     def add_patient_row(self, patient_name):
         row = wx.BoxSizer(wx.HORIZONTAL)
-        row.AddStretchSpacer()
 
         name_label = wx.StaticText(self.queue_panel, label=patient_name)
         accept_btn = wx.Button(self.queue_panel, label="Accept", size=(70, 30))
@@ -164,62 +196,38 @@ class LiveChatPanel(wx.Panel):
         accept_btn.Bind(wx.EVT_BUTTON, lambda e, p=patient_name: self.accept_patient(p))
         kick_btn.Bind(wx.EVT_BUTTON, lambda e, p=patient_name: self.kick_patient(p))
 
-        row.Add(name_label, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 10)
-        row.Add(accept_btn, 0, wx.RIGHT, 5)
-        row.Add(kick_btn, 0)
+        row.Add(name_label, 0, wx.ALL, 5)
+        row.Add(accept_btn, 0, wx.ALL, 5)
+        row.Add(kick_btn, 0, wx.ALL, 5)
 
         self.queue_sizer.Add(row, 0, wx.EXPAND | wx.BOTTOM, 5)
 
     def accept_patient(self, patient_name):
         self.send_to_server(f"ACCEPT_PATIENT,{patient_name}")
-        wx.CallAfter(self.update_video_stream)
-        wx.CallAfter(self.update_audio_stream)
 
     def kick_patient(self, patient_name):
         self.send_to_server(f"KICK_PATIENT,{patient_name}")
-        wx.CallAfter(self.update_video_stream)
 
-    def handle_go_back(self, _):
-        self.stop_event.set()
-        self.switch_panel("home")
-
-    def on_destroy(self, event):
-        self.stop_event.set()
-        try:
-            self.cap.release()
-            self.video_udp.close()
-            self.audio_udp.close()
-        except:
-            pass
-        event.Skip()
-
-    def toggle_video(self, _):
-        self.is_video_disabled = not self.is_video_disabled
-        self.disable_video_btn.SetLabel("Start Video" if self.is_video_disabled else "Stop Video")
-
-    def toggle_audio(self, _):
-        self.is_audio_disabled = not self.is_audio_disabled
-        self.disable_audio_btn.SetBitmap(
-            self.muted_mic_bitmap if self.is_audio_disabled else self.unmuted_mic_bitmap
-        )
-
+    # ---------------- VIDEO ----------------
     def send_video(self):
         while not self.stop_event.is_set():
             try:
-                if self.is_video_disabled:
-                    frame = self.disabled_np
-                    wx.CallAfter(self.self_video.SetBitmap, self.video_off_bmp)
-                else:
-                    ret, frame = self.cap.read()
-                    if not ret:
-                        continue
+                if not self._alive:
+                    break
 
-                    frame = cv2.resize(frame, (600, 400))
-                    frame = cv2.flip(frame, 1)
+                ret, frame = self.cap.read()
+                if not ret:
+                    time.sleep(0.05)
+                    continue
 
-                    rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                    bmp = wx.Bitmap.FromBuffer(600, 400, rgb)
-                    wx.CallAfter(self.self_video.SetBitmap, bmp)
+                frame = cv2.resize(frame, (600, 400))
+                frame = cv2.flip(frame, 1)
+
+                rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+                if self._alive:
+                    wx.CallAfter(self.self_video.SetBitmap,
+                                 wx.Bitmap.FromBuffer(600, 400, rgb))
 
                 _, buf = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 70])
                 self.video_udp.sendto(buf.tobytes(), (self.server_ip, VIDEO_PORT))
@@ -240,14 +248,16 @@ class LiveChatPanel(wx.Panel):
 
                 rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
                 h, w = rgb.shape[:2]
-                bmp = wx.Bitmap.FromBuffer(w, h, rgb)
 
-                wx.CallAfter(self.remote_video.SetBitmap, bmp)
+                if self._alive:
+                    wx.CallAfter(self.remote_video.SetBitmap,
+                                 wx.Bitmap.FromBuffer(w, h, rgb))
 
             except:
                 if self.stop_event.is_set():
                     break
 
+    # ---------------- AUDIO ----------------
     def send_audio(self):
         def callback(indata, frames, time_info, status):
             if self.stop_event.is_set() or self.is_audio_disabled:
@@ -256,8 +266,7 @@ class LiveChatPanel(wx.Panel):
                 data = (indata * 32767).astype(np.int16).tobytes()
                 self.audio_udp.sendto(data, (self.server_ip, AUDIO_PORT))
             except:
-                if self.stop_event.is_set():
-                    return
+                pass
 
         with sd.InputStream(channels=1, samplerate=44100,
                             blocksize=BLOCKSIZE, callback=callback):
@@ -272,16 +281,21 @@ class LiveChatPanel(wx.Panel):
         while not self.stop_event.is_set():
             try:
                 data, _ = self.audio_udp.recvfrom(BLOCKSIZE * 2)
+                audio = np.frombuffer(data, np.int16).astype(np.float32) / 32767
+                stream.write(audio)
             except:
                 if self.stop_event.is_set():
                     break
-                continue
-
-            audio = np.frombuffer(data, np.int16).astype(np.float32) / 32767
-            stream.write(audio)
 
         stream.stop()
         stream.close()
+
+    # ---------------- UI HELPERS ----------------
+    def toggle_video(self, _):
+        self.is_video_disabled = not self.is_video_disabled
+
+    def toggle_audio(self, _):
+        self.is_audio_disabled = not self.is_audio_disabled
 
     def load_icon_normalized(self, path, box_size):
         img = wx.Image(path, wx.BITMAP_TYPE_ANY)
