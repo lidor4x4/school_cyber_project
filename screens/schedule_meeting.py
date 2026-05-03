@@ -25,21 +25,28 @@ class ScheduleMeetingPanel(wx.Panel):
         go_back_btn.Bind(wx.EVT_BUTTON, lambda evt: self.switch_panel("home"))
         self.sizer.Add(go_back_btn, 0, wx.ALIGN_LEFT | wx.LEFT | wx.BOTTOM, 10)
 
+        self.cb = wx.ComboBox(self, size=(200, -1), choices=["All Specialties"], style=wx.CB_READONLY)
+        self.cb.SetSelection(0)
+        self.cb.Bind(wx.EVT_COMBOBOX, self.on_filter)
+        self.sizer.Add(self.cb, 0, wx.ALIGN_RIGHT | wx.ALL, 5)
+
         self.loading_text = wx.StaticText(self, label="Loading doctors...")
         self.loading_text.SetFont(self.title_font)
         self.sizer.Add(self.loading_text, 0, wx.ALIGN_CENTER | wx.ALL, 20)
 
         self.grid_sizer = wx.GridSizer(cols=3, hgap=20, vgap=20)
 
-        # Create a ScrolledWindow for the doctor cards to be displayed in a scrollable area
-        self.scroll_panel = wx.ScrolledWindow(self, size=(500, 500))  # Set initial size
-        self.scroll_panel.SetScrollRate(5, 5)  # Control scrolling speed
+        self.scroll_panel = wx.ScrolledWindow(self, size=(500, 500))
+        self.scroll_panel.SetScrollRate(5, 5)
         self.scroll_panel.SetSizer(self.grid_sizer)
 
         self.sizer.Add(self.scroll_panel, 1, wx.EXPAND | wx.ALL, 20)
 
         self.SetSizer(self.sizer)
         self.Layout()
+
+        self.doctors_specialties = []
+        self.doctor_cards = []  
 
         threading.Thread(target=self.load_users, daemon=True).start()
 
@@ -62,10 +69,12 @@ class ScheduleMeetingPanel(wx.Panel):
         if hasattr(self, "loading_text") and self.loading_text:
             self.loading_text.Destroy()
 
-        self.scroll_panel.Show()  # Show the scrollable area
+        unique_specialties = ["All Specialties"] + sorted(set(self.doctors_specialties))
+        self.cb.SetItems(unique_specialties)
+        self.cb.SetSelection(0)
 
+        self.scroll_panel.Show()
         self.Layout()
-
         self.Thaw()
         self.Refresh()
 
@@ -81,10 +90,12 @@ class ScheduleMeetingPanel(wx.Panel):
             style=wx.ALIGN_CENTER | wx.ST_NO_AUTORESIZE
         )
         dr_username_text.SetFont(self.card_title_font)
-        dr_username_text.Wrap(200)  
+        dr_username_text.Wrap(200)
         card_sizer.Add(dr_username_text, 0, wx.ALIGN_CENTER | wx.ALL, 10)
 
         dr_specialty = self.send_to_server(f"GET_DR_SPECIALTY_BY_USERNAME,{dr_username}")
+        self.doctors_specialties.append(dr_specialty)
+
         dr_username_specialty = wx.StaticText(
             card,
             label=f"Specializes in: {dr_specialty}",
@@ -94,9 +105,7 @@ class ScheduleMeetingPanel(wx.Panel):
         dr_username_specialty.Wrap(200)
         card_sizer.Add(dr_username_specialty, 0, wx.ALIGN_CENTER | wx.ALL, 10)
 
-        users_in_queue = self.send_to_server(
-            f"GET_DR_QUEUE_BY_USERNAME,{dr_username}"
-        )
+        users_in_queue = self.send_to_server(f"GET_DR_QUEUE_BY_USERNAME,{dr_username}")
 
         if not users_in_queue or "empty" in users_in_queue.lower():
             count = 0
@@ -115,8 +124,28 @@ class ScheduleMeetingPanel(wx.Panel):
 
         self.grid_sizer.Add(card, 0, wx.EXPAND | wx.ALL, 5)
 
+        self.doctor_cards.append((card, dr_specialty))
+
         card.Bind(wx.EVT_ENTER_WINDOW, lambda evt: self.on_card_hover(card, True))
         card.Bind(wx.EVT_LEAVE_WINDOW, lambda evt: self.on_card_hover(card, False))
+
+    def on_filter(self, event):
+        selected = self.cb.GetValue()
+
+        self.Freeze()
+        self.grid_sizer.Clear(delete_windows=False)
+
+        for card, specialty in self.doctor_cards:
+            if selected == "All Specialties" or specialty == selected:
+                card.Show()
+                self.grid_sizer.Add(card, 0, wx.EXPAND | wx.ALL, 5)
+            else:
+                card.Hide()
+
+        self.scroll_panel.Layout()
+        self.scroll_panel.FitInside()
+        self.Thaw()
+        self.Refresh()
 
     def on_card_hover(self, card, hover):
         card.SetBackgroundColour(wx.Colour(230, 230, 230) if hover else wx.Colour(245, 245, 245))
@@ -131,9 +160,7 @@ class ScheduleMeetingPanel(wx.Panel):
 
             print(f"TEST: ADD_TO_DR_QUEUE,{dr_username},{username}")
 
-            returned = self.send_to_server(
-                f"ADD_TO_DR_QUEUE,{dr_username},{username}"
-            )
+            returned = self.send_to_server(f"ADD_TO_DR_QUEUE,{dr_username},{username}")
 
             print("returned", returned)
 

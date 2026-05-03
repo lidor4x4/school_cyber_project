@@ -23,6 +23,7 @@ class LiveChatPanel(wx.Panel):
         self.is_video_disabled = False
         self.is_audio_disabled = False
         self.queue_visible = False
+        self.remote_ip = None
 
         self.stop_event = threading.Event()
 
@@ -139,7 +140,7 @@ class LiveChatPanel(wx.Panel):
     def refresh_queue_ui(self, response):
         if not self.queue_visible:
             return
-        
+
         self.queue_sizer.Clear()
 
         if "The queue is empty" in response:
@@ -171,13 +172,15 @@ class LiveChatPanel(wx.Panel):
         self.queue_sizer.Add(row, 0, wx.EXPAND | wx.BOTTOM, 5)
 
     def accept_patient(self, patient_name):
-        self.send_to_server(f"ACCEPT_PATIENT,{patient_name}")
-        wx.CallAfter(self.update_video_stream)
-        wx.CallAfter(self.update_audio_stream)
+        response = self.send_to_server(f"ACCEPT_PATIENT,{patient_name}")
+        # Server should return the patient's IP e.g. "192.168.1.5"
+        self.remote_ip = response.strip()
+        wx.CallAfter(self.refresh_queue_ui, "")
 
     def kick_patient(self, patient_name):
         self.send_to_server(f"KICK_PATIENT,{patient_name}")
-        wx.CallAfter(self.update_video_stream)
+        self.remote_ip = None
+        wx.CallAfter(self.refresh_queue_ui, "")
 
     def handle_go_back(self, _):
         self.stop_event.set()
@@ -233,7 +236,11 @@ class LiveChatPanel(wx.Panel):
     def receive_video(self):
         while not self.stop_event.is_set():
             try:
-                data, _ = self.video_udp.recvfrom(MAX_UDP_SIZE)
+                data, addr = self.video_udp.recvfrom(MAX_UDP_SIZE)
+
+                if self.remote_ip and addr[0] != self.remote_ip:
+                    continue
+
                 img = cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_COLOR)
                 if img is None:
                     continue
@@ -241,7 +248,6 @@ class LiveChatPanel(wx.Panel):
                 rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
                 h, w = rgb.shape[:2]
                 bmp = wx.Bitmap.FromBuffer(w, h, rgb)
-
                 wx.CallAfter(self.remote_video.SetBitmap, bmp)
 
             except:
@@ -271,7 +277,11 @@ class LiveChatPanel(wx.Panel):
 
         while not self.stop_event.is_set():
             try:
-                data, _ = self.audio_udp.recvfrom(BLOCKSIZE * 2)
+                data, addr = self.audio_udp.recvfrom(BLOCKSIZE * 2)
+
+                if self.remote_ip and addr[0] != self.remote_ip:
+                    continue
+
             except:
                 if self.stop_event.is_set():
                     break
