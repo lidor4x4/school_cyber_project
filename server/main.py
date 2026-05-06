@@ -15,7 +15,10 @@ AUDIO_PORT = 12347
 
 video_clients = []
 audio_clients = []
+ips_to_remove = []
+
 methods = utils.Utils()
+
 
 def tcp_server():
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -42,8 +45,17 @@ def tcp_server():
             else:
                 try:
                     data = sock.recv(1024)
+
                     if not data:
                         sockets.remove(sock)
+
+                        try:
+                            user_ip = sock.getpeername()[0]
+                            ips_to_remove.append(user_ip)
+                            print(f"[DISCONNECT] {user_ip}")
+                        except:
+                            pass
+
                         sock.close()
                         continue
 
@@ -53,13 +65,12 @@ def tcp_server():
                     if data.startswith("SIGN_UP"):
                         fields = data.split(', ')[1:]
                         email, password, username, user_type, dr_specialty = map(str.strip, fields)
-                        print(f"Received sign up data: {email}, {password}, {username}, {user_type}, {dr_specialty}")
+
                         response = methods.handle_signup(email, password, username, user_type, dr_specialty)
-                        print(f"Sign up response: {response}")
+
                         if response == "200":
                             clients_by_name[username] = sock
-                            print(clients_by_name)
-                            sock.send(methods.encrypt_message(f"Sign up was successful!!"))
+                            sock.send(methods.encrypt_message("Sign up was successful!!"))
                         else:
                             sock.send(methods.encrypt_message(f"There was an error: {response}"))
 
@@ -67,9 +78,10 @@ def tcp_server():
                         fields = [x.strip() for x in data.split(',')]
                         email = fields[1]
                         password = fields[2]
-                        print(f"Received login data: {email}, {password}")
+
                         response = methods.handle_login(email, password)
                         username_login = methods.get_username(email)
+
                         if response == "200":
                             clients_by_name[username_login] = sock
                             sock.send(methods.encrypt_message(f"Login was successful!!, {username_login}"))
@@ -91,8 +103,7 @@ def tcp_server():
                         sock.send(methods.encrypt_message(','.join(users)))
 
                     elif data.startswith("GET_QUEUE"):
-                        fields = [x.strip() for x in data.split(',')]
-                        dr_username = fields[1]
+                        dr_username = data.split(',')[1].strip()
                         dr_queue = methods.get_dr_queue_by_username(dr_username)
                         sock.send(methods.encrypt_message(dr_queue))
 
@@ -111,39 +122,48 @@ def tcp_server():
                         sock.send(methods.encrypt_message(dr_specialty))
 
                     elif data.startswith("ADD_TO_DR_QUEUE"):
-                        user_username = data.split(",")[-1]
                         add_queue_dr_username = data.split(",")[-2]
-                        print("server username", user_username)
-                        print("Server Dr username", add_queue_dr_username)
+                        user_username = data.split(",")[-1]
+
                         ret = methods.add_to_dr_queue(add_queue_dr_username, user_username)
-                        print("rettttttttttttttttt", ret)
                         sock.send(methods.encrypt_message(ret))
 
                     elif data.startswith("ACCEPT_PATIENT"):
                         patient_username = data.split(",")[-1]
-                        patient_sock = clients_by_name[patient_username]
 
-                        patient_ip = patient_sock.getpeername()[0]
-                        doctor_ip = sock.getpeername()[0]
+                        if patient_username in clients_by_name:
+                            patient_sock = clients_by_name[patient_username]
 
-                        print("doctor ip", doctor_ip)
-                        print("patient ip", patient_ip)
+                            video_clients.clear()
+                            audio_clients.clear()
+                            print("[RESET] Cleared UDP client lists")
 
-                        # Tell patient they were accepted and give them the doctor's IP
-                        patient_sock.send(methods.encrypt_message(f"ACCEPTED,{doctor_ip}"))
+                            patient_ip = patient_sock.getpeername()[0]
+                            doctor_ip = sock.getpeername()[0]
 
-                        # Reply to doctor with the patient's IP
-                        sock.send(methods.encrypt_message(patient_ip))
+                            patient_sock.send(methods.encrypt_message(f"ACCEPTED,{doctor_ip}"))
+                            sock.send(methods.encrypt_message(patient_ip))
 
                     elif data.startswith("KICK_PATIENT"):
                         patient_username = data.split(",")[-1]
+
                         if patient_username in clients_by_name:
                             clients_by_name[patient_username].send(methods.encrypt_message("KICKED"))
+
                         sock.send(methods.encrypt_message("OK"))
 
                 except Exception as e:
                     print("TCP error:", e)
-                    sockets.remove(sock)
+
+                    if sock in sockets:
+                        sockets.remove(sock)
+
+                    try:
+                        user_ip = sock.getpeername()[0]
+                        ips_to_remove.append(user_ip)
+                    except:
+                        pass
+
                     sock.close()
 
 
@@ -153,12 +173,18 @@ def udp_relay(port, client_list):
     print(f"UDP relay on port {port} running")
 
     while True:
+        for ip in ips_to_remove[:]:
+            client_list[:] = [c for c in client_list if c[0] != ip]
+            ips_to_remove.remove(ip)
+            print(f"[CLEAN] Removed {ip} from port {port}")
+
         data, addr = sock.recvfrom(65535)
 
-        if addr not in client_list:
-            client_list.append(addr)
+        client_list[:] = [c for c in client_list if c[0] != addr[0]]
 
-        # Prepend sender's IP into the packet so receivers can filter by it
+        client_list.append(addr)
+        print(f"[ADD] {addr} to port {port}")
+
         sender_ip = addr[0].encode()
         length = len(sender_ip).to_bytes(1, 'big')
         packet = length + sender_ip + data
