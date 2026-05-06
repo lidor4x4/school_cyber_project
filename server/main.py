@@ -131,7 +131,8 @@ def tcp_server():
                         print("joules ip", patient_ip)
 
                         # Tell the patient they were accepted, and give them the doctor's IP
-                        patient_sock.send(methods.encrypt_message(f"ACCEPTED,{doctor_ip}"))
+                        #patient_sock.send(methods.encrypt_message(f"ACCEPTED,{doctor_ip}"))
+                        patient_sock.send(methods.encrypt_message(f"ACCEPTED"))
 
                         # Reply to the doctor with the patient's IP
                         sock.send(methods.encrypt_message(patient_ip))

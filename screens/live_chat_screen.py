@@ -174,7 +174,7 @@ class LiveChatPanel(wx.Panel):
     def accept_patient(self, patient_name):
         response = self.send_to_server(f"ACCEPT_PATIENT,{patient_name}")
         self.remote_ip = response.strip()
-        # wx.CallAfter(self.refresh_queue_ui, "")
+        wx.CallAfter(self.refresh_queue_ui, "")
 
     def kick_patient(self, patient_name):
         self.send_to_server(f"KICK_PATIENT,{patient_name}")
