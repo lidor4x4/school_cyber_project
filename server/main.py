@@ -123,19 +123,23 @@ def tcp_server():
                         patient_username = data.split(",")[-1]
                         patient_sock = clients_by_name[patient_username]
 
-                        # Get both IPs
                         patient_ip = patient_sock.getpeername()[0]
                         doctor_ip = sock.getpeername()[0]
 
-                        print("dr ip", doctor_ip)
-                        print("joules ip", patient_ip)
+                        print("doctor ip", doctor_ip)
+                        print("patient ip", patient_ip)
 
-                        # Tell the patient they were accepted, and give them the doctor's IP
-                        #patient_sock.send(methods.encrypt_message(f"ACCEPTED,{doctor_ip}"))
-                        patient_sock.send(methods.encrypt_message(f"ACCEPTED"))
+                        # Tell patient they were accepted and give them the doctor's IP
+                        patient_sock.send(methods.encrypt_message(f"ACCEPTED,{doctor_ip}"))
 
-                        # Reply to the doctor with the patient's IP
+                        # Reply to doctor with the patient's IP
                         sock.send(methods.encrypt_message(patient_ip))
+
+                    elif data.startswith("KICK_PATIENT"):
+                        patient_username = data.split(",")[-1]
+                        if patient_username in clients_by_name:
+                            clients_by_name[patient_username].send(methods.encrypt_message("KICKED"))
+                        sock.send(methods.encrypt_message("OK"))
 
                 except Exception as e:
                     print("TCP error:", e)
@@ -154,9 +158,14 @@ def udp_relay(port, client_list):
         if addr not in client_list:
             client_list.append(addr)
 
+        # Prepend sender's IP into the packet so receivers can filter by it
+        sender_ip = addr[0].encode()
+        length = len(sender_ip).to_bytes(1, 'big')
+        packet = length + sender_ip + data
+
         for client in client_list:
             if client != addr:
-                sock.sendto(data, client)
+                sock.sendto(packet, client)
 
 
 if __name__ == "__main__":

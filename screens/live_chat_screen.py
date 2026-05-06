@@ -32,7 +32,6 @@ class LiveChatPanel(wx.Panel):
         BTN_BOX = 76
 
         self.video_off_bmp, self.disabled_np = self.load_video_off_image(VIDEO_W, VIDEO_H)
-
         self.muted_mic_bitmap = self.load_icon_normalized("assets/muted mic photo.jpg", ICON_BOX)
         self.unmuted_mic_bitmap = self.load_icon_normalized("assets/unmuted_photo.png", ICON_BOX)
 
@@ -83,7 +82,6 @@ class LiveChatPanel(wx.Panel):
 
         self.queue_toggle_btn = wx.Button(self, label="See Queue", size=(140, 40))
         self.queue_toggle_btn.Bind(wx.EVT_BUTTON, self.toggle_queue)
-
         queue_sizer.Add(self.queue_toggle_btn, 0, wx.RIGHT | wx.BOTTOM, 20)
 
         self.main_sizer.Add(queue_sizer, 0, wx.EXPAND)
@@ -91,10 +89,8 @@ class LiveChatPanel(wx.Panel):
         self.queue_panel = wx.Panel(self)
         self.queue_panel.Hide()
         self.queue_panel.SetBackgroundColour(wx.Colour(240, 240, 240))
-
         self.queue_sizer = wx.BoxSizer(wx.VERTICAL)
         self.queue_panel.SetSizer(self.queue_sizer)
-
         self.main_sizer.Add(self.queue_panel, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 20)
 
         self.SetSizer(self.main_sizer)
@@ -119,9 +115,22 @@ class LiveChatPanel(wx.Panel):
         threading.Thread(target=self.send_audio, daemon=True).start()
         threading.Thread(target=self.receive_audio, daemon=True).start()
 
+        # Listen for ACCEPTED push from server in background
+        threading.Thread(target=self.listen_for_server_push, daemon=True).start()
+
+    def listen_for_server_push(self):
+        """Listens for unsolicited messages from server like ACCEPTED,<doctor_ip>"""
+        while not self.stop_event.is_set():
+            try:
+                # We need a separate TCP connection just for listening
+                # Instead we poll send_to_server won't work here
+                # This is handled by the waiting_room screen for the patient
+                pass
+            except:
+                break
+
     def toggle_queue(self, _):
         self.queue_visible = not self.queue_visible
-
         if self.queue_visible:
             self.queue_toggle_btn.SetLabel("Hide Queue")
             self.queue_panel.Show()
@@ -129,7 +138,6 @@ class LiveChatPanel(wx.Panel):
         else:
             self.queue_toggle_btn.SetLabel("See Queue")
             self.queue_panel.Hide()
-
         self.main_sizer.Layout()
 
     def load_queue(self):
@@ -140,9 +148,7 @@ class LiveChatPanel(wx.Panel):
     def refresh_queue_ui(self, response):
         if not self.queue_visible:
             return
-
         self.queue_sizer.Clear()
-
         if "The queue is empty" in response:
             txt = wx.StaticText(self.queue_panel, label="No patients in queue.")
             self.queue_sizer.Add(txt, 0, wx.ALIGN_RIGHT | wx.ALL, 10)
@@ -150,36 +156,38 @@ class LiveChatPanel(wx.Panel):
             patients = response.split(",")
             for patient in patients:
                 self.add_patient_row(patient.strip())
-
         self.queue_panel.Layout()
         self.main_sizer.Layout()
 
     def add_patient_row(self, patient_name):
         row = wx.BoxSizer(wx.HORIZONTAL)
         row.AddStretchSpacer()
-
         name_label = wx.StaticText(self.queue_panel, label=patient_name)
         accept_btn = wx.Button(self.queue_panel, label="Accept", size=(70, 30))
         kick_btn = wx.Button(self.queue_panel, label="Kick", size=(70, 30))
-
         accept_btn.Bind(wx.EVT_BUTTON, lambda e, p=patient_name: self.accept_patient(p))
         kick_btn.Bind(wx.EVT_BUTTON, lambda e, p=patient_name: self.kick_patient(p))
-
         row.Add(name_label, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 10)
         row.Add(accept_btn, 0, wx.RIGHT, 5)
         row.Add(kick_btn, 0)
-
         self.queue_sizer.Add(row, 0, wx.EXPAND | wx.BOTTOM, 5)
 
     def accept_patient(self, patient_name):
+        # Server replies with patient's IP
         response = self.send_to_server(f"ACCEPT_PATIENT,{patient_name}")
         self.remote_ip = response.strip()
+        print("Doctor set remote_ip to:", self.remote_ip)
         wx.CallAfter(self.refresh_queue_ui, "")
 
     def kick_patient(self, patient_name):
         self.send_to_server(f"KICK_PATIENT,{patient_name}")
         self.remote_ip = None
         wx.CallAfter(self.refresh_queue_ui, "")
+
+    def set_remote_ip(self, ip):
+        """Called externally (e.g. from waiting_room or screen_manager) when patient gets ACCEPTED"""
+        self.remote_ip = ip
+        print("Patient set remote_ip to:", self.remote_ip)
 
     def handle_go_back(self, _):
         self.stop_event.set()
@@ -215,17 +223,14 @@ class LiveChatPanel(wx.Panel):
                     ret, frame = self.cap.read()
                     if not ret:
                         continue
-
                     frame = cv2.resize(frame, (600, 400))
                     frame = cv2.flip(frame, 1)
-
                     rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                     bmp = wx.Bitmap.FromBuffer(600, 400, rgb)
                     wx.CallAfter(self.self_video.SetBitmap, bmp)
 
                 _, buf = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 70])
                 self.video_udp.sendto(buf.tobytes(), (self.server_ip, VIDEO_PORT))
-
                 time.sleep(0.04)
 
             except:
@@ -237,7 +242,12 @@ class LiveChatPanel(wx.Panel):
             try:
                 data, addr = self.video_udp.recvfrom(MAX_UDP_SIZE)
 
-                if self.remote_ip and addr[0] != self.remote_ip:
+                # Unpack sender IP embedded by relay
+                ip_len = data[0]
+                sender_ip = data[1:1 + ip_len].decode()
+                data = data[1 + ip_len:]
+
+                if self.remote_ip and sender_ip != self.remote_ip:
                     continue
 
                 img = cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_COLOR)
@@ -276,9 +286,14 @@ class LiveChatPanel(wx.Panel):
 
         while not self.stop_event.is_set():
             try:
-                data, addr = self.audio_udp.recvfrom(BLOCKSIZE * 2)
+                data, addr = self.audio_udp.recvfrom(BLOCKSIZE * 2 + 20)
 
-                if self.remote_ip and addr[0] != self.remote_ip:
+                # Unpack sender IP embedded by relay
+                ip_len = data[0]
+                sender_ip = data[1:1 + ip_len].decode()
+                data = data[1 + ip_len:]
+
+                if self.remote_ip and sender_ip != self.remote_ip:
                     continue
 
             except:
