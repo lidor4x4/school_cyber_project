@@ -13,17 +13,17 @@ MAX_UDP_SIZE = 65535
 BLOCKSIZE = 2048
 
 class LiveChatPanel(wx.Panel):
-    def __init__(self, parent, switch_panel, send_to_server, server_ip):
+    def __init__(self, parent, switch_panel, send_to_server, server_ip, remote_ip=None):
         super().__init__(parent)
 
         self.server_ip = server_ip
         self.send_to_server = send_to_server
         self.switch_panel = switch_panel
+        self.remote_ip = remote_ip  # None for doctor until they accept, doctor_ip for patient
 
         self.is_video_disabled = False
         self.is_audio_disabled = False
         self.queue_visible = False
-        self.remote_ip = None
 
         self.stop_event = threading.Event()
 
@@ -115,20 +115,6 @@ class LiveChatPanel(wx.Panel):
         threading.Thread(target=self.send_audio, daemon=True).start()
         threading.Thread(target=self.receive_audio, daemon=True).start()
 
-        # Listen for ACCEPTED push from server in background
-        threading.Thread(target=self.listen_for_server_push, daemon=True).start()
-
-    def listen_for_server_push(self):
-        """Listens for unsolicited messages from server like ACCEPTED,<doctor_ip>"""
-        while not self.stop_event.is_set():
-            try:
-                # We need a separate TCP connection just for listening
-                # Instead we poll send_to_server won't work here
-                # This is handled by the waiting_room screen for the patient
-                pass
-            except:
-                break
-
     def toggle_queue(self, _):
         self.queue_visible = not self.queue_visible
         if self.queue_visible:
@@ -173,7 +159,6 @@ class LiveChatPanel(wx.Panel):
         self.queue_sizer.Add(row, 0, wx.EXPAND | wx.BOTTOM, 5)
 
     def accept_patient(self, patient_name):
-        # Server replies with patient's IP
         response = self.send_to_server(f"ACCEPT_PATIENT,{patient_name}")
         self.remote_ip = response.strip()
         print("Doctor set remote_ip to:", self.remote_ip)
@@ -183,11 +168,6 @@ class LiveChatPanel(wx.Panel):
         self.send_to_server(f"KICK_PATIENT,{patient_name}")
         self.remote_ip = None
         wx.CallAfter(self.refresh_queue_ui, "")
-
-    def set_remote_ip(self, ip):
-        """Called externally (e.g. from waiting_room or screen_manager) when patient gets ACCEPTED"""
-        self.remote_ip = ip
-        print("Patient set remote_ip to:", self.remote_ip)
 
     def handle_go_back(self, _):
         self.stop_event.set()

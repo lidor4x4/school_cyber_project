@@ -10,7 +10,7 @@ class WaitingRoomPanel(wx.Panel):
         self.send_to_server = send_to_server
         self.client_socket = client_socket
         self.methods = utils.Utils()
-        self.running = True  
+        self.running = True
 
         self.main_sizer = wx.BoxSizer(wx.VERTICAL)
 
@@ -44,8 +44,11 @@ class WaitingRoomPanel(wx.Panel):
             print("Error receiving from server:", e)
 
     def handle_server_message(self, message):
-        if "ACCEPTED" in message:
-            self.switch_panel("live_chat")
+        if message.startswith("ACCEPTED"):
+            parts = message.split(",")
+            doctor_ip = parts[1].strip() if len(parts) >= 2 else None
+            # Pass doctor_ip to switch_panel so LiveChatPanel can be initialized with it
+            self.switch_panel("live_chat", doctor_ip)
 
     def Destroy(self):
         self.running = False
