@@ -51,23 +51,22 @@ def tcp_server():
                     print("Received:", data)
 
                     if data.startswith("SIGN_UP"):
-                        fields = data.split(', ')[1:]  # Remove the 'SIGN_UP,' part and keep the rest
-                        email, password, username, user_type, dr_specialty = map(str.strip, fields)  # remoe spaces and assign each var 
+                        fields = data.split(', ')[1:]
+                        email, password, username, user_type, dr_specialty = map(str.strip, fields)
                         print(f"Received sign up data: {email}, {password}, {username}, {user_type}, {dr_specialty}")
                         response = methods.handle_signup(email, password, username, user_type, dr_specialty)
                         print(f"Sign up response: {response}")
                         if response == "200":
                             clients_by_name[username] = sock
                             print(clients_by_name)
-                            sock.send(methods.encrypt_message(f"Sign up was successful!!"))
+                            sock.send(methods.encrypt_message("Sign up was successful!!"))
                         else:
                             sock.send(methods.encrypt_message(f"There was an error: {response}"))
 
                     elif data.startswith("LOGIN"):
                         fields = [x.strip() for x in data.split(',')]
-
-                        email = fields[1]         
-                        password = fields[2]    
+                        email = fields[1]
+                        password = fields[2]
                         print(f"Received login data: {email}, {password}")
                         response = methods.handle_login(email, password)
                         username_login = methods.get_username(email)
@@ -76,7 +75,7 @@ def tcp_server():
                             sock.send(methods.encrypt_message(f"Login was successful!!, {username_login}"))
                         else:
                             sock.send(methods.encrypt_message(f"There was an error: {response}"))
-                    
+
                     elif data.startswith("GET_USER_ROLE_BY_EMAIL"):
                         email = data.split(",")[-1]
                         user_role = methods.get_role_by_email(email)
@@ -94,14 +93,13 @@ def tcp_server():
                     elif data.startswith("GET_QUEUE"):
                         fields = [x.strip() for x in data.split(',')]
                         dr_username = fields[1]
-                                                
                         dr_queue = methods.get_dr_queue_by_username(dr_username)
-                        sock.send(methods.encrypt_message(dr_queue))        
-                    
+                        sock.send(methods.encrypt_message(dr_queue))
+
                     elif data.startswith("GET_VERIFIED_DR_USERS"):
                         dr_users = ",".join(methods.get_verified_dr_users())
                         sock.send(methods.encrypt_message(dr_users))
-                    
+
                     elif data.startswith("GET_DR_QUEUE_BY_USERNAME"):
                         dr_username_queue = data.split(",")[-1]
                         users_in_queue = methods.get_dr_queue_by_username(dr_username_queue)
@@ -111,7 +109,6 @@ def tcp_server():
                         dr_username_specialty = data.split(",")[-1]
                         dr_specialty = methods.get_dr_specialty_by_username(dr_username_specialty)
                         sock.send(methods.encrypt_message(dr_specialty))
-
 
                     elif data.startswith("ADD_TO_DR_QUEUE"):
                         user_username = data.split(",")[-1]
@@ -123,8 +120,23 @@ def tcp_server():
                         sock.send(methods.encrypt_message(ret))
 
                     elif data.startswith("ACCEPT_PATIENT"):
-                        username = data.split(",")[-1]
-                        clients_by_name[username].send(methods.encrypt_message("ACCEPTED"))
+                        patient_username = data.split(",")[-1]
+                        patient_sock = clients_by_name[patient_username]
+
+                        patient_ip = patient_sock.getpeername()[0]
+                        doctor_ip = sock.getpeername()[0]
+
+                        # Push ACCEPTED + doctor's IP to the patient (unsolicited)
+                        patient_sock.send(methods.encrypt_message(f"ACCEPTED,{doctor_ip}"))
+
+                        # Reply to the doctor with the patient's IP
+                        sock.send(methods.encrypt_message(patient_ip))
+
+                    elif data.startswith("KICK_PATIENT"):
+                        patient_username = data.split(",")[-1]
+                        if patient_username in clients_by_name:
+                            clients_by_name[patient_username].send(methods.encrypt_message("KICKED"))
+                        sock.send(methods.encrypt_message("OK"))
 
                 except Exception as e:
                     print("TCP error:", e)
@@ -139,14 +151,11 @@ def udp_relay(port, client_list):
 
     while True:
         data, addr = sock.recvfrom(65535)
-
         if addr not in client_list:
             client_list.append(addr)
-
         for client in client_list:
             if client != addr:
                 sock.sendto(data, client)
-
 
 
 if __name__ == "__main__":
@@ -158,4 +167,3 @@ if __name__ == "__main__":
 
     while True:
         pass
-
