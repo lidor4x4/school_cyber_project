@@ -13,7 +13,7 @@ MAX_UDP_SIZE = 65535
 BLOCKSIZE = 2048
 
 class LiveChatPanel(wx.Panel):
-    def __init__(self, parent, switch_panel, send_to_server, server_ip, register_push_callback):
+    def __init__(self, parent, switch_panel, send_to_server, server_ip):
         super().__init__(parent)
 
         self.server_ip = server_ip
@@ -32,6 +32,7 @@ class LiveChatPanel(wx.Panel):
         BTN_BOX = 76
 
         self.video_off_bmp, self.disabled_np = self.load_video_off_image(VIDEO_W, VIDEO_H)
+
         self.muted_mic_bitmap = self.load_icon_normalized("assets/muted mic photo.jpg", ICON_BOX)
         self.unmuted_mic_bitmap = self.load_icon_normalized("assets/unmuted_photo.png", ICON_BOX)
 
@@ -82,6 +83,7 @@ class LiveChatPanel(wx.Panel):
 
         self.queue_toggle_btn = wx.Button(self, label="See Queue", size=(140, 40))
         self.queue_toggle_btn.Bind(wx.EVT_BUTTON, self.toggle_queue)
+
         queue_sizer.Add(self.queue_toggle_btn, 0, wx.RIGHT | wx.BOTTOM, 20)
 
         self.main_sizer.Add(queue_sizer, 0, wx.EXPAND)
@@ -89,8 +91,10 @@ class LiveChatPanel(wx.Panel):
         self.queue_panel = wx.Panel(self)
         self.queue_panel.Hide()
         self.queue_panel.SetBackgroundColour(wx.Colour(240, 240, 240))
+
         self.queue_sizer = wx.BoxSizer(wx.VERTICAL)
         self.queue_panel.SetSizer(self.queue_sizer)
+
         self.main_sizer.Add(self.queue_panel, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 20)
 
         self.SetSizer(self.main_sizer)
@@ -110,23 +114,14 @@ class LiveChatPanel(wx.Panel):
 
         self.Bind(wx.EVT_WINDOW_DESTROY, self.on_destroy)
 
-        # Register to receive unsolicited server messages (e.g. ACCEPTED)
-        register_push_callback(self.handle_server_push)
-
         threading.Thread(target=self.send_video, daemon=True).start()
         threading.Thread(target=self.receive_video, daemon=True).start()
         threading.Thread(target=self.send_audio, daemon=True).start()
         threading.Thread(target=self.receive_audio, daemon=True).start()
 
-    def handle_server_push(self, message):
-        """Receives unsolicited messages from the server, e.g. ACCEPTED,<doctor_ip>"""
-        if message.startswith("ACCEPTED"):
-            parts = message.split(",")
-            if len(parts) >= 2:
-                self.remote_ip = parts[1].strip()
-
     def toggle_queue(self, _):
         self.queue_visible = not self.queue_visible
+
         if self.queue_visible:
             self.queue_toggle_btn.SetLabel("Hide Queue")
             self.queue_panel.Show()
@@ -134,6 +129,7 @@ class LiveChatPanel(wx.Panel):
         else:
             self.queue_toggle_btn.SetLabel("See Queue")
             self.queue_panel.Hide()
+
         self.main_sizer.Layout()
 
     def load_queue(self):
@@ -144,7 +140,9 @@ class LiveChatPanel(wx.Panel):
     def refresh_queue_ui(self, response):
         if not self.queue_visible:
             return
+
         self.queue_sizer.Clear()
+
         if "The queue is empty" in response:
             txt = wx.StaticText(self.queue_panel, label="No patients in queue.")
             self.queue_sizer.Add(txt, 0, wx.ALIGN_RIGHT | wx.ALL, 10)
@@ -152,27 +150,31 @@ class LiveChatPanel(wx.Panel):
             patients = response.split(",")
             for patient in patients:
                 self.add_patient_row(patient.strip())
+
         self.queue_panel.Layout()
         self.main_sizer.Layout()
 
     def add_patient_row(self, patient_name):
         row = wx.BoxSizer(wx.HORIZONTAL)
         row.AddStretchSpacer()
+
         name_label = wx.StaticText(self.queue_panel, label=patient_name)
         accept_btn = wx.Button(self.queue_panel, label="Accept", size=(70, 30))
         kick_btn = wx.Button(self.queue_panel, label="Kick", size=(70, 30))
+
         accept_btn.Bind(wx.EVT_BUTTON, lambda e, p=patient_name: self.accept_patient(p))
         kick_btn.Bind(wx.EVT_BUTTON, lambda e, p=patient_name: self.kick_patient(p))
+
         row.Add(name_label, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 10)
         row.Add(accept_btn, 0, wx.RIGHT, 5)
         row.Add(kick_btn, 0)
+
         self.queue_sizer.Add(row, 0, wx.EXPAND | wx.BOTTOM, 5)
 
     def accept_patient(self, patient_name):
-        # Server replies with the patient's IP directly
         response = self.send_to_server(f"ACCEPT_PATIENT,{patient_name}")
         self.remote_ip = response.strip()
-        wx.CallAfter(self.refresh_queue_ui, "")
+        # wx.CallAfter(self.refresh_queue_ui, "")
 
     def kick_patient(self, patient_name):
         self.send_to_server(f"KICK_PATIENT,{patient_name}")
@@ -213,14 +215,17 @@ class LiveChatPanel(wx.Panel):
                     ret, frame = self.cap.read()
                     if not ret:
                         continue
+
                     frame = cv2.resize(frame, (600, 400))
                     frame = cv2.flip(frame, 1)
+
                     rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                     bmp = wx.Bitmap.FromBuffer(600, 400, rgb)
                     wx.CallAfter(self.self_video.SetBitmap, bmp)
 
                 _, buf = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 70])
                 self.video_udp.sendto(buf.tobytes(), (self.server_ip, VIDEO_PORT))
+
                 time.sleep(0.04)
 
             except:
@@ -272,8 +277,10 @@ class LiveChatPanel(wx.Panel):
         while not self.stop_event.is_set():
             try:
                 data, addr = self.audio_udp.recvfrom(BLOCKSIZE * 2)
+
                 if self.remote_ip and addr[0] != self.remote_ip:
                     continue
+
             except:
                 if self.stop_event.is_set():
                     break
