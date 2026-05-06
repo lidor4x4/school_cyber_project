@@ -44,7 +44,7 @@ class WaitingRoomPanel(wx.Panel):
             print("Error receiving from server:", e)
 
     def handle_server_message(self, message):
-        if message == "ACCEPTED":
+        if "ACCEPTED" in message:
             self.switch_panel("live_chat")
 
     def Destroy(self):
