@@ -12,6 +12,9 @@ AUDIO_PORT = 12347
 MAX_UDP_SIZE = 65535
 BLOCKSIZE = 2048
 
+VIDEO_W, VIDEO_H = 420, 280
+
+
 class LiveChatPanel(wx.Panel):
     def __init__(self, parent, switch_panel, send_to_server, server_ip, remote_ip=None):
         super().__init__(parent)
@@ -24,12 +27,18 @@ class LiveChatPanel(wx.Panel):
         self.is_video_disabled = False
         self.is_audio_disabled = False
         self.queue_visible = False
+        self._queue_loading = False
 
         self.stop_event = threading.Event()
 
-        VIDEO_W, VIDEO_H = 600, 400
         ICON_BOX = 64
         BTN_BOX = 76
+
+        self.SetBackgroundColour(wx.Colour(245, 245, 242))
+
+        self.label_font = wx.Font(11, wx.DEFAULT, wx.NORMAL, wx.NORMAL, False, "Arial")
+        self.body_font = wx.Font(13, wx.DEFAULT, wx.NORMAL, wx.NORMAL, False, "Arial")
+        self.bold_font = wx.Font(13, wx.DEFAULT, wx.NORMAL, wx.BOLD, False, "Arial")
 
         self.video_off_bmp, self.disabled_np = self.load_video_off_image(VIDEO_W, VIDEO_H)
         self.muted_mic_bitmap = self.load_icon_normalized("assets/muted mic photo.jpg", ICON_BOX)
@@ -37,36 +46,80 @@ class LiveChatPanel(wx.Panel):
 
         self.main_sizer = wx.BoxSizer(wx.VERTICAL)
 
-        title = wx.StaticText(self, label="Video Chat")
-        title_font = wx.Font(36, wx.FONTFAMILY_SWISS, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD)
-        title.SetFont(title_font)
-        self.main_sizer.Add(title, 0, wx.ALIGN_CENTER | wx.TOP, 20)
+        # ── Header ────────────────────────────────────────────────────────────
+        header_panel = wx.Panel(self)
+        header_panel.SetBackgroundColour(wx.Colour(255, 255, 255))
+        header_panel.SetMinSize((-1, 60))
+        header_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
-        go_back_btn = wx.Button(self, label="Go Back")
+        go_back_btn = wx.Button(header_panel, label="← Back")
+        go_back_btn.SetFont(self.label_font)
+        go_back_btn.SetForegroundColour(wx.Colour(107, 107, 107))
         go_back_btn.Bind(wx.EVT_BUTTON, self.handle_go_back)
-        self.main_sizer.Add(go_back_btn, 0, wx.RIGHT, 5)
 
-        self.main_sizer.AddStretchSpacer(1)
+        app_title = wx.StaticText(header_panel, label="MedConnect — Live Chat")
+        app_title.SetFont(wx.Font(15, wx.DEFAULT, wx.NORMAL, wx.BOLD, False, "Georgia"))
+        app_title.SetForegroundColour(wx.Colour(26, 26, 26))
 
+        header_sizer.AddSpacer(12)
+        header_sizer.Add(go_back_btn, 0, wx.ALIGN_CENTER_VERTICAL)
+        header_sizer.AddStretchSpacer(1)
+        header_sizer.Add(app_title, 0, wx.ALIGN_CENTER_VERTICAL)
+        header_sizer.AddStretchSpacer(1)
+        header_sizer.AddSpacer(12)
+        header_panel.SetSizer(header_sizer)
+
+        self.main_sizer.Add(header_panel, 0, wx.EXPAND)
+        self.main_sizer.Add(wx.StaticLine(self), 0, wx.EXPAND)
+        self.main_sizer.AddSpacer(12)
+
+        # ── Video feeds ───────────────────────────────────────────────────────
         video_row = wx.BoxSizer(wx.HORIZONTAL)
+        video_row.AddStretchSpacer(1)
+
+        self_col = wx.BoxSizer(wx.VERTICAL)
+        self_label = wx.StaticText(self, label="You")
+        self_label.SetFont(self.label_font)
+        self_label.SetForegroundColour(wx.Colour(107, 107, 107))
         self.self_video = wx.StaticBitmap(self, size=(VIDEO_W, VIDEO_H))
+        self.self_video.SetBitmap(wx.Bitmap(VIDEO_W, VIDEO_H))
+        self_col.Add(self_label, 0, wx.ALIGN_CENTER | wx.BOTTOM, 4)
+        self_col.Add(self.self_video, 0)
+
+        remote_col = wx.BoxSizer(wx.VERTICAL)
+        remote_label = wx.StaticText(self, label="Remote")
+        remote_label.SetFont(self.label_font)
+        remote_label.SetForegroundColour(wx.Colour(107, 107, 107))
         self.remote_video = wx.StaticBitmap(self, size=(VIDEO_W, VIDEO_H))
-        video_row.Add(self.self_video, 0, wx.ALL | wx.ALIGN_CENTER, 10)
-        video_row.Add(self.remote_video, 0, wx.ALL | wx.ALIGN_CENTER, 10)
-        self.main_sizer.Add(video_row, 0, wx.ALIGN_CENTER)
+        self.remote_video.SetBitmap(wx.Bitmap(VIDEO_W, VIDEO_H))
+        remote_col.Add(remote_label, 0, wx.ALIGN_CENTER | wx.BOTTOM, 4)
+        remote_col.Add(self.remote_video, 0)
 
-        self.main_sizer.AddStretchSpacer(1)
+        video_row.Add(self_col, 0, wx.ALL | wx.ALIGN_CENTER, 10)
+        video_row.AddSpacer(20)
+        video_row.Add(remote_col, 0, wx.ALL | wx.ALIGN_CENTER, 10)
+        video_row.AddStretchSpacer(1)
 
+        self.main_sizer.Add(video_row, 0, wx.EXPAND)
+        self.main_sizer.AddSpacer(12)
+
+        # ── Controls ──────────────────────────────────────────────────────────
         controls_wrapper = wx.BoxSizer(wx.HORIZONTAL)
         controls = wx.BoxSizer(wx.HORIZONTAL)
 
         self.disable_video_btn = wx.Button(self, label="Stop Video", size=(160, 56))
+        self.disable_video_btn.SetFont(self.body_font)
+        self.disable_video_btn.SetBackgroundColour(wx.Colour(15, 110, 86))
+        self.disable_video_btn.SetForegroundColour(wx.Colour(225, 245, 238))
+        self.disable_video_btn.Bind(wx.EVT_BUTTON, self.toggle_video)
+
         self.disable_audio_btn = wx.BitmapButton(
             self,
             bitmap=self.unmuted_mic_bitmap,
             size=(BTN_BOX, BTN_BOX),
             style=wx.BORDER_NONE
         )
+        self.disable_audio_btn.Bind(wx.EVT_BUTTON, self.toggle_audio)
 
         controls.Add(self.disable_video_btn, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 10)
         controls.Add(self.disable_audio_btn, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 10)
@@ -77,15 +130,19 @@ class LiveChatPanel(wx.Panel):
 
         self.main_sizer.Add(controls_wrapper, 0, wx.EXPAND | wx.BOTTOM, 10)
 
+        # ── Queue toggle ──────────────────────────────────────────────────────
         queue_sizer = wx.BoxSizer(wx.HORIZONTAL)
         queue_sizer.AddStretchSpacer()
 
         self.queue_toggle_btn = wx.Button(self, label="See Queue", size=(140, 40))
+        self.queue_toggle_btn.SetFont(self.label_font)
+        self.queue_toggle_btn.SetForegroundColour(wx.Colour(107, 107, 107))
         self.queue_toggle_btn.Bind(wx.EVT_BUTTON, self.toggle_queue)
         queue_sizer.Add(self.queue_toggle_btn, 0, wx.RIGHT | wx.BOTTOM, 20)
 
         self.main_sizer.Add(queue_sizer, 0, wx.EXPAND)
 
+        # ── Queue panel ───────────────────────────────────────────────────────
         self.queue_panel = wx.Panel(self)
         self.queue_panel.Hide()
         self.queue_panel.SetBackgroundColour(wx.Colour(240, 240, 240))
@@ -94,9 +151,6 @@ class LiveChatPanel(wx.Panel):
         self.main_sizer.Add(self.queue_panel, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 20)
 
         self.SetSizer(self.main_sizer)
-
-        self.disable_video_btn.Bind(wx.EVT_BUTTON, self.toggle_video)
-        self.disable_audio_btn.Bind(wx.EVT_BUTTON, self.toggle_audio)
 
         self.video_udp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.video_udp.bind(("", 0))
@@ -120,22 +174,27 @@ class LiveChatPanel(wx.Panel):
         if self.queue_visible:
             self.queue_toggle_btn.SetLabel("Hide Queue")
             self.queue_panel.Show()
-            threading.Thread(target=self.load_queue, daemon=True).start()
+            if not self._queue_loading:
+                self._queue_loading = True
+                threading.Thread(target=self.load_queue, daemon=True).start()
         else:
             self.queue_toggle_btn.SetLabel("See Queue")
             self.queue_panel.Hide()
         self.main_sizer.Layout()
 
     def load_queue(self):
-        username = globals["user_name"]
-        response = self.send_to_server(f"GET_QUEUE,{username}")
-        wx.CallAfter(self.refresh_queue_ui, response)
+        try:
+            username = globals["user_name"]
+            response = self.send_to_server(f"GET_QUEUE,{username}")
+            wx.CallAfter(self.refresh_queue_ui, response)
+        finally:
+            self._queue_loading = False
 
     def refresh_queue_ui(self, response):
         if not self.queue_visible:
             return
         self.queue_sizer.Clear()
-        if "The queue is empty" in response:
+        if not response or "The queue is empty" in response:
             txt = wx.StaticText(self.queue_panel, label="No patients in queue.")
             self.queue_sizer.Add(txt, 0, wx.ALIGN_RIGHT | wx.ALL, 10)
         else:
@@ -203,10 +262,11 @@ class LiveChatPanel(wx.Panel):
                     ret, frame = self.cap.read()
                     if not ret:
                         continue
-                    frame = cv2.resize(frame, (600, 400))
+                    frame = cv2.resize(frame, (VIDEO_W, VIDEO_H))
                     frame = cv2.flip(frame, 1)
                     rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                    bmp = wx.Bitmap.FromBuffer(600, 400, rgb)
+                    rgb = np.ascontiguousarray(rgb)
+                    bmp = wx.Bitmap.FromBuffer(VIDEO_W, VIDEO_H, rgb)
                     wx.CallAfter(self.self_video.SetBitmap, bmp)
 
                 _, buf = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 70])
@@ -235,6 +295,7 @@ class LiveChatPanel(wx.Panel):
                     continue
 
                 rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+                rgb = np.ascontiguousarray(rgb)
                 h, w = rgb.shape[:2]
                 bmp = wx.Bitmap.FromBuffer(w, h, rgb)
                 wx.CallAfter(self.remote_video.SetBitmap, bmp)
