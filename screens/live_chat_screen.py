@@ -46,13 +46,12 @@ class LiveChatPanel(wx.Panel):
 
         self.main_sizer = wx.BoxSizer(wx.VERTICAL)
 
-        # ── Header ────────────────────────────────────────────────────────────
         header_panel = wx.Panel(self)
         header_panel.SetBackgroundColour(wx.Colour(255, 255, 255))
         header_panel.SetMinSize((-1, 60))
         header_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
-        go_back_btn = wx.Button(header_panel, label="← Back")
+        go_back_btn = wx.Button(header_panel, label="Back")
         go_back_btn.SetFont(self.label_font)
         go_back_btn.SetForegroundColour(wx.Colour(107, 107, 107))
         go_back_btn.Bind(wx.EVT_BUTTON, self.handle_go_back)
@@ -73,7 +72,6 @@ class LiveChatPanel(wx.Panel):
         self.main_sizer.Add(wx.StaticLine(self), 0, wx.EXPAND)
         self.main_sizer.AddSpacer(12)
 
-        # ── Video feeds ───────────────────────────────────────────────────────
         video_row = wx.BoxSizer(wx.HORIZONTAL)
         video_row.AddStretchSpacer(1)
 
@@ -130,7 +128,6 @@ class LiveChatPanel(wx.Panel):
 
         self.main_sizer.Add(controls_wrapper, 0, wx.EXPAND | wx.BOTTOM, 10)
 
-        # ── Queue toggle ──────────────────────────────────────────────────────
         queue_sizer = wx.BoxSizer(wx.HORIZONTAL)
         queue_sizer.AddStretchSpacer()
 
@@ -142,7 +139,6 @@ class LiveChatPanel(wx.Panel):
 
         self.main_sizer.Add(queue_sizer, 0, wx.EXPAND)
 
-        # ── Queue panel ───────────────────────────────────────────────────────
         self.queue_panel = wx.Panel(self)
         self.queue_panel.Hide()
         self.queue_panel.SetBackgroundColour(wx.Colour(240, 240, 240))

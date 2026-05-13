@@ -8,7 +8,7 @@ class HomePanel(wx.Panel):
         super().__init__(parent)
         self.methods = utils.Utils()
         self.switch_panel = switch_panel
-        self.client_socket = send_to_server
+        self.send_to_server = send_to_server
         self.auth_state = globals["auth_state"]
         self.user_role = globals["user_role"]
 
@@ -150,10 +150,13 @@ class HomePanel(wx.Panel):
         self.SetSizer(self.sizer)
 
     def handle_sign_out(self, event):
+        user_name = globals["user_name"]
+        self.send_to_server(f"CHANGE_TO_OFFLINE{user_name}")
         globals["auth_state"] = False
         globals["user_name"] = ""
         globals["user_role"] = ""
         globals["is_admin"] = False
+        globals["is_online"] = False
         self.switch_panel("home")
 
     def handle_live_chat_screen(self, event):

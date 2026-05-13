@@ -185,12 +185,25 @@ SELECT password FROM Users WHERE email = '{email}'
             print(f"Error fetching user role: {e}")
             return 
 
+    def is_user_online(self, username):
+        conn = sqlite3.connect(sqlite_file) 
+        cursor = conn.cursor()
+        cursor.execute("SELECT online_status FROM Users WHERE username = ?",(username,))
+        online_status = cursor.fetchone()[0]
+        return online_status
+
+
+
     def get_dr_queue_by_username(self, username):
         try:
             conn = sqlite3.connect(sqlite_file) 
             cursor = conn.cursor()
             cursor.execute("SELECT clients_in_line FROM Users WHERE username = ?",(username,))
             queue_tup = cursor.fetchone()
+            users_in_queue_list = queue_tup[0].split(",")
+            for user in users_in_queue_list:
+                if self.is_user_online(user):
+                    pass
             if queue_tup and queue_tup[0] != None:
                 conn.commit()
                 conn.close()
@@ -205,6 +218,22 @@ SELECT password FROM Users WHERE email = '{email}'
             print(f"Error fetching dr queue: {e}")
             return 
         
+
+    def set_user_online_status(self, username, status):
+        conn = sqlite3.connect(sqlite_file)
+        db_cursor = conn.cursor()
+
+        db_cursor.execute("""
+            UPDATE Users
+            SET is_online = ?
+            WHERE username = ?;
+        """, (status, username))
+
+        conn.commit()
+        conn.close()
+
+
+
     def get_dr_specialty_by_username(self, username):
         try:
             conn = sqlite3.connect(sqlite_file) 

@@ -2,7 +2,6 @@ import wx
 import re
 from globals import globals
 import utils.utils as utils
-import threading
 
 
 class SignupPanel(wx.Panel):

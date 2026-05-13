@@ -102,6 +102,17 @@ def tcp_server():
                         users = methods.get_unverified_users()
                         sock.send(methods.encrypt_message(','.join(users)))
 
+                    elif data.startswith("CHANGE_TO_OFFLINE"):
+                        user_to_change = data.split(',')[1].strip()
+                        methods.set_user_online_status(user_to_change, 0)
+                        sock.send(methods.encrypt_message("User status changed successfully!!"))
+
+                    elif data.startswith("SET_USER_ONLINE"):
+                        user_to_change = data.split(',')[1].strip()
+                        methods.set_user_online_status(user_to_change, 1)
+                        sock.send(methods.encrypt_message("User status changed successfully!!"))
+
+
                     elif data.startswith("GET_QUEUE"):
                         dr_username = data.split(',')[1].strip()
                         dr_queue = methods.get_dr_queue_by_username(dr_username)

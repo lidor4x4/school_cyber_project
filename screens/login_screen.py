@@ -135,6 +135,8 @@ class LoginPanel(wx.Panel):
                 print(email)
                 globals["user_name"] = username
                 globals["user_role"] = self.send_to_server(f"GET_USER_ROLE_BY_EMAIL,{email}")
+                globals["is_online"] = True
+                res = self.send_to_server(f"SET_USER_ONLINE,{username}")
                 self.switch_panel("home")
             else:
                 self.info.SetLabel(res)
