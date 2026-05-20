@@ -24,7 +24,7 @@ class MedicationScreen(wx.Panel):
             self.main_sizer.Add(self.title, 0, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL, 20)
 
         elif self.user_role == "dr":
-            self.title = wx.StaticText(self, label=f"Hello Dr.{self.username} your patient's medication is:")
+            self.title = wx.StaticText(self, label=f"Hello Dr. {self.username} your patient's medication is:")
             title_font = wx.Font(36, wx.FONTFAMILY_SWISS, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD)
             title_font.SetUnderlined(True)
             self.title.SetFont(title_font)
@@ -39,7 +39,6 @@ class MedicationScreen(wx.Panel):
 
         self.SetSizer(self.main_sizer)
         self.Layout()
-
 
     def on_go_back(self, event):
         if self.switch_panel:

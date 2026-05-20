@@ -23,6 +23,7 @@ class LiveChatPanel(wx.Panel):
         self.send_to_server = send_to_server
         self.switch_panel = switch_panel
         self.remote_ip = remote_ip  # None for doctor until they accept, doctor_ip for patient
+        self.remote_username = None  # stores the accepted patient's username
 
         self.is_video_disabled = False
         self.is_audio_disabled = False
@@ -119,14 +120,35 @@ class LiveChatPanel(wx.Panel):
         )
         self.disable_audio_btn.Bind(wx.EVT_BUTTON, self.toggle_audio)
 
+        self.prescribe_btn = wx.Button(self, label="Prescribe Meds", size=(160, 56))
+        self.prescribe_btn.SetFont(self.body_font)
+        self.prescribe_btn.SetBackgroundColour(wx.Colour(15, 110, 86))
+        self.prescribe_btn.SetForegroundColour(wx.Colour(225, 245, 238))
+        self.prescribe_btn.Bind(wx.EVT_BUTTON, self.toggle_prescription_box)
+
         controls.Add(self.disable_video_btn, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 10)
         controls.Add(self.disable_audio_btn, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 10)
+        controls.Add(self.prescribe_btn, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 10)
 
         controls_wrapper.AddStretchSpacer()
         controls_wrapper.Add(controls, 0, wx.ALIGN_CENTER)
         controls_wrapper.AddStretchSpacer()
 
         self.main_sizer.Add(controls_wrapper, 0, wx.EXPAND | wx.BOTTOM, 10)
+
+        # ── Prescription textbox + confirm button (hidden by default) ──────────
+        self.prescription_box = wx.TextCtrl(self, size=(400, 100), style=wx.TE_MULTILINE | wx.TE_WORDWRAP)
+        self.prescription_box.SetHint("Type prescription here...")
+        self.prescription_box.Hide()
+        self.main_sizer.Add(self.prescription_box, 0, wx.ALIGN_CENTER | wx.BOTTOM, 10)
+
+        self.confirm_rx_btn = wx.Button(self, label="Confirm Prescription", size=(200, 40))
+        self.confirm_rx_btn.SetFont(self.body_font)
+        self.confirm_rx_btn.SetBackgroundColour(wx.Colour(15, 110, 86))
+        self.confirm_rx_btn.SetForegroundColour(wx.Colour(225, 245, 238))
+        self.confirm_rx_btn.Bind(wx.EVT_BUTTON, self.confirm_prescription)
+        self.confirm_rx_btn.Hide()
+        self.main_sizer.Add(self.confirm_rx_btn, 0, wx.ALIGN_CENTER | wx.BOTTOM, 10)
 
         queue_sizer = wx.BoxSizer(wx.HORIZONTAL)
         queue_sizer.AddStretchSpacer()
@@ -164,6 +186,30 @@ class LiveChatPanel(wx.Panel):
         threading.Thread(target=self.receive_video, daemon=True).start()
         threading.Thread(target=self.send_audio, daemon=True).start()
         threading.Thread(target=self.receive_audio, daemon=True).start()
+
+    def toggle_prescription_box(self, _):
+        if self.prescription_box.IsShown():
+            self.prescription_box.Hide()
+            self.confirm_rx_btn.Hide()
+        else:
+            self.prescription_box.Show()
+            self.confirm_rx_btn.Show()
+        self.main_sizer.Layout()
+
+    def confirm_prescription(self, _):
+        text = self.prescription_box.GetValue().strip()
+        if not text:
+            wx.MessageBox("Please write a prescription first.", "Empty", wx.OK | wx.ICON_WARNING)
+            return
+        if not self.remote_username:
+            wx.MessageBox("No patient accepted yet.", "No Patient", wx.OK | wx.ICON_WARNING)
+            return
+        self.send_to_server(f"PRESCRIPTION,{self.remote_username},{text}")
+        wx.MessageBox("Prescription sent!", "Done", wx.OK | wx.ICON_INFORMATION)
+        self.prescription_box.SetValue("")
+        self.prescription_box.Hide()
+        self.confirm_rx_btn.Hide()
+        self.main_sizer.Layout()
 
     def toggle_queue(self, _):
         self.queue_visible = not self.queue_visible
@@ -216,12 +262,14 @@ class LiveChatPanel(wx.Panel):
     def accept_patient(self, patient_name):
         response = self.send_to_server(f"ACCEPT_PATIENT,{patient_name}")
         self.remote_ip = response.strip()
+        self.remote_username = patient_name  # save the patient's username
         print("Doctor set remote_ip to:", self.remote_ip)
         wx.CallAfter(self.refresh_queue_ui, "")
 
     def kick_patient(self, patient_name):
         self.send_to_server(f"KICK_PATIENT,{patient_name}")
         self.remote_ip = None
+        self.remote_username = None
         wx.CallAfter(self.refresh_queue_ui, "")
 
     def handle_go_back(self, _):
@@ -362,4 +410,4 @@ class LiveChatPanel(wx.Panel):
         w, h = wx_img.GetWidth(), wx_img.GetHeight()
         data = wx_img.GetData()
         img = np.frombuffer(data, dtype=np.uint8).reshape((h, w, 3))
-        return cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+        return cv2.cvtColor(img, cv2.COLOR_RGB2BGR) 
