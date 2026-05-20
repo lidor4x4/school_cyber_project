@@ -83,6 +83,14 @@ class HomePanel(wx.Panel):
                 self.sizer.Add(go_schedule_meeting_btn, 0, wx.ALL | wx.CENTER, 5)
                 go_schedule_meeting_btn.Bind(wx.EVT_BUTTON, lambda evt: self.switch_panel("schedule_meeting"))
 
+                self.patient_medication = wx.Button(self, label="See your patients medication", size=(220, 44))
+                self.patient_medication.SetBackgroundColour(wx.Colour(225, 245, 238))
+                self.patient_medication.SetForegroundColour(wx.Colour(15, 110, 86))
+                self.patient_medication.SetFont(self.body_font)
+                self.sizer.Add(self.patient_medication, 0, wx.ALL | wx.CENTER, 5)
+                self.patient_medication.Bind(wx.EVT_BUTTON, lambda evt: self.switch_panel("medication_screen"))
+
+
             elif self.user_role == "dr":
                 verify_status = send_to_server(f"VERIFY,{user_name}")
                 print("Verify Status", verify_status)
@@ -100,6 +108,15 @@ class HomePanel(wx.Panel):
                     self.sizer.Add(self.live_chat_btn, 0, wx.ALL | wx.CENTER, 5)
                     self.live_chat_btn.Bind(wx.EVT_BUTTON, self.handle_live_chat_screen)
 
+                    self.patient_medication = wx.Button(self, label="See your patients medication", size=(220, 44))
+                    self.patient_medication.SetBackgroundColour(wx.Colour(225, 245, 238))
+                    self.patient_medication.SetForegroundColour(wx.Colour(15, 110, 86))
+                    self.patient_medication.SetFont(self.body_font)
+                    self.sizer.Add(self.patient_medication, 0, wx.ALL | wx.CENTER, 5)
+                    self.patient_medication.Bind(wx.EVT_BUTTON, lambda evt: self.switch_panel("medication_screen"))
+
+
+
             else:
                 self.live_chat_btn = wx.Button(self, label="Live Chat", size=(220, 44))
                 self.live_chat_btn.SetBackgroundColour(wx.Colour(225, 245, 238))
@@ -114,6 +131,14 @@ class HomePanel(wx.Panel):
                 go_schedule_meeting_btn.SetFont(self.body_font)
                 self.sizer.Add(go_schedule_meeting_btn, 0, wx.ALL | wx.CENTER, 5)
                 go_schedule_meeting_btn.Bind(wx.EVT_BUTTON, lambda evt: self.switch_panel("schedule_meeting"))
+
+                self.patient_medication = wx.Button(self, label="See your medication", size=(220, 44))
+                self.patient_medication.SetBackgroundColour(wx.Colour(225, 245, 238))
+                self.patient_medication.SetForegroundColour(wx.Colour(15, 110, 86))
+                self.patient_medication.SetFont(self.body_font)
+                self.sizer.Add(self.patient_medication, 0, wx.ALL | wx.CENTER, 5)
+                self.patient_medication.Bind(wx.EVT_BUTTON, lambda evt: self.switch_panel("medication_screen"))
+
 
             self.sizer.Add(wx.StaticLine(self), 0, wx.EXPAND | wx.TOP, 20)
             sign_out_btn = wx.Button(self, label="Sign Out", size=(120, 34))
@@ -151,7 +176,7 @@ class HomePanel(wx.Panel):
 
     def handle_sign_out(self, event):
         user_name = globals["user_name"]
-        self.send_to_server(f"CHANGE_TO_OFFLINE{user_name}")
+        self.send_to_server(f"CHANGE_TO_OFFLINE,{user_name}")
         globals["auth_state"] = False
         globals["user_name"] = ""
         globals["user_role"] = ""

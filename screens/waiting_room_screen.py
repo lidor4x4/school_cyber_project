@@ -29,7 +29,7 @@ class WaitingRoomPanel(wx.Panel):
         self.go_back_btn = wx.Button(header_panel, label="← Back")
         self.go_back_btn.SetFont(self.label_font)
         self.go_back_btn.SetForegroundColour(wx.Colour(107, 107, 107))
-        self.go_back_btn.Bind(wx.EVT_BUTTON, lambda evt: self.switch_panel("home"))
+        self.go_back_btn.Bind(wx.EVT_BUTTON, self._on_back_clicked)
 
         app_title = wx.StaticText(header_panel, label="MedConnect")
         app_title.SetFont(wx.Font(20, wx.DEFAULT, wx.NORMAL, wx.BOLD, False, "Georgia"))
@@ -57,21 +57,6 @@ class WaitingRoomPanel(wx.Panel):
         self.desc.SetForegroundColour(wx.Colour(107, 107, 107))
         self.main_sizer.Add(self.desc, 0, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL, 8)
 
-        self.dots_label = wx.StaticText(self, label="●  ●  ●")
-        self.dots_label.SetFont(wx.Font(18, wx.DEFAULT, wx.NORMAL, wx.NORMAL, False, "Arial"))
-        self.dots_label.SetForegroundColour(wx.Colour(225, 245, 238))
-        self.main_sizer.Add(self.dots_label, 0, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL, 16)
-
-        self._dot_step = 0
-        self._dot_colors = [
-            wx.Colour(225, 245, 238),
-            wx.Colour(159, 225, 203),
-            wx.Colour(15, 110, 86),
-        ]
-        self._dot_timer = wx.Timer(self)
-        self.Bind(wx.EVT_TIMER, self._on_dot_timer, self._dot_timer)
-        self._dot_timer.Start(600)
-
         self.main_sizer.AddStretchSpacer(1)
 
         self.SetSizer(self.main_sizer)
@@ -79,26 +64,49 @@ class WaitingRoomPanel(wx.Panel):
 
         threading.Thread(target=self.wait_for_server, daemon=True).start()
 
-    def _on_dot_timer(self, event):
-        self._dot_step = (self._dot_step + 1) % len(self._dot_colors)
-        self.dots_label.SetForegroundColour(self._dot_colors[self._dot_step])
+    def _on_back_clicked(self, event):
+        """Clean up resources before switching panels."""
+        self.cleanup()
+        self.switch_panel("home")
 
     def wait_for_server(self):
         try:
-            data = self.client_socket.recv(4096)
-            if data:
-                message = self.methods.decrypt_message(data)
-                wx.CallAfter(self.handle_server_message, message)
+            self.client_socket.settimeout(1.0)
+            
+            while self.running:
+                try:
+                    data = self.client_socket.recv(4096)
+                    if not data:
+                        break  
+                    
+                    message = self.methods.decrypt_message(data)
+                    wx.CallAfter(self.handle_server_message, message)
+                except TimeoutError:
+                    continue
+                    
         except Exception as e:
-            print("Error receiving from server:", e)
+            if self.running:
+                print("Error receiving from server:", e)
+        finally:
+            try:
+                self.client_socket.settimeout(None)
+            except:
+                pass
+            print("Background waiting thread has successfully closed.")
 
     def handle_server_message(self, message):
+        if not self.running:
+            return
+            
         if message.startswith("ACCEPTED"):
             parts = message.split(",")
             doctor_ip = parts[1].strip() if len(parts) >= 2 else None
+            self.cleanup() 
             self.switch_panel("live_chat", doctor_ip)
 
-    def Destroy(self):
+    def cleanup(self):
         self.running = False
-        self._dot_timer.Stop()
+
+    def Destroy(self):
+        self.cleanup()
         super().Destroy()

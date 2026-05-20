@@ -11,6 +11,7 @@ from screens.home_screen import HomePanel
 from screens.verify_doctor_screen import VerifyDoctorPanel
 from screens.waiting_room_screen import WaitingRoomPanel
 from screens.schedule_meeting import ScheduleMeetingPanel
+from screens.medication_screen import MedicationScreen
 
 class MainFrame(wx.Frame):
     def __init__(self):
@@ -46,6 +47,8 @@ class MainFrame(wx.Frame):
             self.current_panel = WaitingRoomPanel(self, self.switch_panel, self.send_to_server, self.client_socket)
         elif name == "schedule_meeting":
             self.current_panel = ScheduleMeetingPanel(self, self.switch_panel, self.send_to_server)
+        elif name == "medication_screen":
+            self.current_panel = MedicationScreen(self, self.switch_panel, self.send_to_server)
 
         self.Layout()
 

@@ -185,6 +185,23 @@ SELECT password FROM Users WHERE email = '{email}'
             print(f"Error fetching user role: {e}")
             return 
 
+
+    def get_role_by_username(self, name):
+        try:
+            conn = sqlite3.connect(sqlite_file) 
+            cursor = conn.cursor()
+            cursor.execute("SELECT role FROM Users WHERE username = ?",(name,))
+            role_tup = cursor.fetchone()
+            print("gay", role_tup[0])
+            if role_tup:
+                conn.commit()
+                conn.close()
+                return role_tup[0]
+        
+        except Exception as e:
+            print(f"Error fetching user role: {e}")
+            return 
+
     def is_user_online(self, username):
         conn = sqlite3.connect(sqlite_file) 
         cursor = conn.cursor()
@@ -200,14 +217,11 @@ SELECT password FROM Users WHERE email = '{email}'
             cursor = conn.cursor()
             cursor.execute("SELECT clients_in_line FROM Users WHERE username = ?",(username,))
             queue_tup = cursor.fetchone()
-            users_in_queue_list = queue_tup[0].split(",")
-            for user in users_in_queue_list:
-                if self.is_user_online(user):
-                    pass
-            if queue_tup and queue_tup[0] != None:
-                conn.commit()
-                conn.close()
-                return queue_tup[0]
+            if queue_tup[0]:
+                if queue_tup and queue_tup[0] != None:
+                    conn.commit()
+                    conn.close()
+                    return queue_tup[0]
             
             else:
                 conn.commit()

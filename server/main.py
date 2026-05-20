@@ -93,6 +93,13 @@ def tcp_server():
                         user_role = methods.get_role_by_email(email)
                         sock.send(methods.encrypt_message(user_role))
 
+                    elif data.startswith("GET_USER_ROLE_BY_USERNAME"):
+                        name = data.split(",")[-1].strip()
+                        print(name)
+                        user_role = methods.get_role_by_username(name)
+                        sock.send(methods.encrypt_message(user_role))
+
+
                     elif data.startswith("VERIFY"):
                         username_verify = data.split(",")[-1]
                         verify_status = str(methods.get_verified_by_username(username_verify))
