@@ -214,7 +214,7 @@ SELECT password FROM Users WHERE email = '{email}'
     def is_user_online(self, username):
         conn = sqlite3.connect(sqlite_file) 
         cursor = conn.cursor()
-        cursor.execute("SELECT online_status FROM Users WHERE username = ?",(username,))
+        cursor.execute("SELECT is_online FROM Users WHERE username = ?",(username,))
         online_status = cursor.fetchone()[0]
         return online_status
 
