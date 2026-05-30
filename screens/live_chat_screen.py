@@ -322,11 +322,10 @@ class LiveChatPanel(wx.Panel):
         wx.CallAfter(self.refresh_queue_ui, "")
 
     def handle_go_back(self, _):
-        # Send a black frame so the remote sees camera closed before disconnect
         try:
             black = np.zeros((VIDEO_H, VIDEO_W, 3), dtype=np.uint8)
             _, buf = cv2.imencode(".jpg", black)
-            for _ in range(3):
+            for _ in range(5):
                 self.video_udp.sendto(buf.tobytes(), (self.server_ip, VIDEO_PORT))
                 time.sleep(0.05)
         except:
