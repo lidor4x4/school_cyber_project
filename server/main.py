@@ -15,8 +15,6 @@ AUDIO_PORT = 12347
 
 video_clients = []
 audio_clients = []
-ips_to_remove = []
-allowed_session_ips = set()
 
 methods = utils.Utils()
 
@@ -50,9 +48,7 @@ def tcp_server():
                     if not data:
                         sockets.remove(sock)
                         try:
-                            user_ip = sock.getpeername()[0]
-                            ips_to_remove.append(user_ip)
-                            print(f"[DISCONNECT] {user_ip}")
+                            print(f"[DISCONNECT] {sock.getpeername()[0]}")
                         except:
                             pass
                         sock.close()
@@ -121,9 +117,6 @@ def tcp_server():
                     elif data.startswith("PRESCRIPTION"):
                         patient_username = data.split(",")[-2]
                         patient_prescription = data.split(",")[-1]
-                        print("dsdad", data)
-                        print(patient_username)
-                        print(patient_prescription)
                         patient_prescription_response = methods.add_patient_prescription(patient_username, patient_prescription)
                         sock.send(methods.encrypt_message(patient_prescription_response))
 
@@ -163,19 +156,14 @@ def tcp_server():
                         if patient_username in clients_by_name:
                             patient_sock = clients_by_name[patient_username]
 
-                            # Only reset allowed IPs — do NOT clear client lists
-                            # The doctor is already registered in client_list from
-                            # sending video before accept, wiping it breaks the call
-                            allowed_session_ips.clear()
-
                             patient_ip = patient_sock.getpeername()[0]
                             doctor_ip = sock.getpeername()[0]
 
-                            allowed_session_ips.add(patient_ip)
-                            allowed_session_ips.add(doctor_ip)
-
                             print(f"[SESSION] doctor={doctor_ip}, patient={patient_ip}")
-                            print(f"[ALLOWED] {allowed_session_ips}")
+
+                            # Remove any stale entry for patient IP, keep doctor's entry
+                            video_clients[:] = [c for c in video_clients if c[0] != patient_ip]
+                            audio_clients[:] = [c for c in audio_clients if c[0] != patient_ip]
 
                             patient_sock.send(methods.encrypt_message(f"ACCEPTED,{doctor_ip}"))
                             sock.send(methods.encrypt_message(patient_ip))
@@ -192,34 +180,28 @@ def tcp_server():
                         sockets.remove(sock)
                     try:
                         user_ip = sock.getpeername()[0]
-                        ips_to_remove.append(user_ip)
                     except:
                         pass
                     sock.close()
 
 
-def udp_relay(port, client_list, allowed_ips):
+def udp_relay(port, client_list):
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.bind(("0.0.0.0", port))
     print(f"UDP relay on port {port} running")
 
     while True:
-        for ip in ips_to_remove[:]:
-            client_list[:] = [c for c in client_list if c[0] != ip]
-            ips_to_remove.remove(ip)
-            print(f"[CLEAN] Removed {ip} from port {port}")
-
         data, addr = sock.recvfrom(65535)
 
-        if allowed_ips and addr[0] not in allowed_ips:
+        if data == b"PING":
+            # Register the sender but don't relay
+            client_list[:] = [c for c in client_list if c[0] != addr[0]]
+            client_list.append(addr)
+            print(f"[PING registered] {addr} on port {port}, clients now: {client_list}")
             continue
 
         client_list[:] = [c for c in client_list if c[0] != addr[0]]
         client_list.append(addr)
-        print(f"[ADD] {addr} to port {port}")
-
-        if data == b"PING":
-            continue
 
         sender_ip = addr[0].encode()
         length = len(sender_ip).to_bytes(1, 'big')
@@ -232,8 +214,8 @@ def udp_relay(port, client_list, allowed_ips):
 
 if __name__ == "__main__":
     threading.Thread(target=tcp_server, daemon=True).start()
-    threading.Thread(target=udp_relay, args=(VIDEO_PORT, video_clients, allowed_session_ips), daemon=True).start()
-    threading.Thread(target=udp_relay, args=(AUDIO_PORT, audio_clients, allowed_session_ips), daemon=True).start()
+    threading.Thread(target=udp_relay, args=(VIDEO_PORT, video_clients), daemon=True).start()
+    threading.Thread(target=udp_relay, args=(AUDIO_PORT, audio_clients), daemon=True).start()
 
     print("SERVER READY")
 

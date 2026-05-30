@@ -178,6 +178,14 @@ class LiveChatPanel(wx.Panel):
 
         self.cap = cv2.VideoCapture(0)
 
+        # Send PINGs immediately to register with the relay
+        # This is critical for the patient who already has remote_ip set
+        try:
+            self.video_udp.sendto(b"PING", (self.server_ip, VIDEO_PORT))
+            self.audio_udp.sendto(b"PING", (self.server_ip, AUDIO_PORT))
+        except:
+            pass
+
         self.Bind(wx.EVT_WINDOW_DESTROY, self.on_destroy)
 
         threading.Thread(target=self.send_video, daemon=True).start()
