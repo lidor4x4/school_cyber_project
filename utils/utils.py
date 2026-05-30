@@ -220,6 +220,8 @@ SELECT password FROM Users WHERE email = '{email}'
 
     def add_patient_prescription(self, patient_username, patient_prescription):
         try:
+            conn = sqlite3.connect(sqlite_file) 
+            db_cursor = conn.cursor()
             db_cursor.execute("""UPDATE Users SET prescribed_medication = ? WHERE username = ?""", 
                             (patient_prescription, patient_username))
 

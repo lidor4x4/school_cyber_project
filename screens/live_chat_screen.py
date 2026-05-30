@@ -202,7 +202,8 @@ class LiveChatPanel(wx.Panel):
         if not self.remote_username:
             wx.MessageBox("No patient accepted yet.", "No Patient", wx.OK | wx.ICON_WARNING)
             return
-        self.send_to_server(f"PRESCRIPTION,{self.remote_username},{text}")
+        res = self.send_to_server(f"PRESCRIPTION,{self.remote_username},{text}")
+        print(res)
         wx.MessageBox("Prescription sent!", "Done", wx.OK | wx.ICON_INFORMATION)
         self.prescription_box.SetValue("")
         self.prescription_box.Hide()
