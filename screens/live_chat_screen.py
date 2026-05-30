@@ -180,10 +180,24 @@ class LiveChatPanel(wx.Panel):
 
         self.Bind(wx.EVT_WINDOW_DESTROY, self.on_destroy)
 
+        # Register with relay immediately — critical for patient who already
+        # has remote_ip set and needs to be in the list before doctor's
+        # first relayed packet arrives
+        threading.Thread(target=self._register_with_relay, daemon=True).start()
+
         threading.Thread(target=self.send_video, daemon=True).start()
         threading.Thread(target=self.receive_video, daemon=True).start()
         threading.Thread(target=self.send_audio, daemon=True).start()
         threading.Thread(target=self.receive_audio, daemon=True).start()
+
+    def _register_with_relay(self):
+        for _ in range(5):
+            try:
+                self.video_udp.sendto(b"PING", (self.server_ip, VIDEO_PORT))
+                self.audio_udp.sendto(b"PING", (self.server_ip, AUDIO_PORT))
+            except:
+                pass
+            time.sleep(0.1)
 
     def toggle_prescription_box(self, _):
         if self.prescription_box.IsShown():
@@ -263,12 +277,16 @@ class LiveChatPanel(wx.Panel):
         self.remote_ip = response.strip()
         self.remote_username = patient_name
         print("Doctor set remote_ip to:", self.remote_ip)
-        # Re-register with relay since server just cleared our stale entry
-        try:
-            self.video_udp.sendto(b"PING", (self.server_ip, VIDEO_PORT))
-            self.audio_udp.sendto(b"PING", (self.server_ip, AUDIO_PORT))
-        except:
-            pass
+        # Server just cleared the lists — re-register immediately with multiple pings
+        def reregister():
+            for _ in range(5):
+                try:
+                    self.video_udp.sendto(b"PING", (self.server_ip, VIDEO_PORT))
+                    self.audio_udp.sendto(b"PING", (self.server_ip, AUDIO_PORT))
+                except:
+                    pass
+                time.sleep(0.1)
+        threading.Thread(target=reregister, daemon=True).start()
         wx.CallAfter(self.refresh_queue_ui, "")
 
     def kick_patient(self, patient_name):

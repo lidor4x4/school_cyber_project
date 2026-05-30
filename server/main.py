@@ -165,12 +165,12 @@ def tcp_server():
                             patient_ip = patient_sock.getpeername()[0]
                             doctor_ip = sock.getpeername()[0]
 
-                            # Remove BOTH stale entries — doctor will re-register
-                            # via PING immediately after, patient registers on first packet
-                            video_clients[:] = [c for c in video_clients if c[0] not in (patient_ip, doctor_ip)]
-                            audio_clients[:] = [c for c in audio_clients if c[0] not in (patient_ip, doctor_ip)]
+                            # Full clear — doctor re-registers via PING,
+                            # patient re-registers on first packet after ACCEPTED
+                            video_clients.clear()
+                            audio_clients.clear()
                             print(f"[SESSION] doctor={doctor_ip}, patient={patient_ip}")
-                            print(f"[CLIENTS after cleanup] video={video_clients}")
+                            print(f"[RESET] Lists cleared")
 
                             patient_sock.send(methods.encrypt_message(f"ACCEPTED,{doctor_ip}"))
                             sock.send(methods.encrypt_message(patient_ip))
