@@ -57,7 +57,8 @@ class Utils:
         VALUES (?, ?, ?, ?, ?, ?);""", (email, str(hashed_password.decode()), username, user_type, verified,None))
 
                 conn.commit()
-                conn.close()         
+                conn.close()    
+            self.set_user_online_status(username, 1)     
             return "200"
 
         except Exception as e :
