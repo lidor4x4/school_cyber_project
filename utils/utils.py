@@ -279,9 +279,10 @@ SELECT password FROM Users WHERE email = '{email}'
             cursor = conn.cursor()
             cursor.execute("SELECT clients_in_line FROM Users WHERE username = ? AND is_online = ?",(username,1,))
             queue_tup = cursor.fetchone()
-            print("test", queue_tup)
             if queue_tup and queue_tup[0]:
-                users_in_queue_full = queue_tup[0].split(",")
+                users_in_queue_full = queue_tup[0].strip().split(",")
+                for i in range(len(users_in_queue_full)):
+                    users_in_queue_full[i] = users_in_queue_full[i].strip()
                 online_users_in_queue = []
                 for user in users_in_queue_full:
                     if self.is_user_online(user):
@@ -298,8 +299,7 @@ SELECT password FROM Users WHERE email = '{email}'
             
         except Exception as e:
             print(f"Error fetching dr queue: {e}")
-            return "The queue is empty"
-        
+            return "The queue is empty"        
 
     def get_dr_queue_by_username(self, username):
         try:
