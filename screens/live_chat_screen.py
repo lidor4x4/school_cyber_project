@@ -22,8 +22,8 @@ class LiveChatPanel(wx.Panel):
         self.server_ip = server_ip
         self.send_to_server = send_to_server
         self.switch_panel = switch_panel
-        self.remote_ip = remote_ip  # None for doctor until they accept, doctor_ip for patient
-        self.remote_username = None  # stores the accepted patient's username
+        self.remote_ip = remote_ip
+        self.remote_username = None
 
         self.is_video_disabled = False
         self.is_audio_disabled = False
@@ -261,8 +261,14 @@ class LiveChatPanel(wx.Panel):
     def accept_patient(self, patient_name):
         response = self.send_to_server(f"ACCEPT_PATIENT,{patient_name}")
         self.remote_ip = response.strip()
-        self.remote_username = patient_name  # save the patient's username
+        self.remote_username = patient_name
         print("Doctor set remote_ip to:", self.remote_ip)
+        # Re-register with relay since server just cleared our stale entry
+        try:
+            self.video_udp.sendto(b"PING", (self.server_ip, VIDEO_PORT))
+            self.audio_udp.sendto(b"PING", (self.server_ip, AUDIO_PORT))
+        except:
+            pass
         wx.CallAfter(self.refresh_queue_ui, "")
 
     def kick_patient(self, patient_name):
@@ -407,4 +413,4 @@ class LiveChatPanel(wx.Panel):
         w, h = wx_img.GetWidth(), wx_img.GetHeight()
         data = wx_img.GetData()
         img = np.frombuffer(data, dtype=np.uint8).reshape((h, w, 3))
-        return cv2.cvtColor(img, cv2.COLOR_RGB2BGR) 
+        return cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
