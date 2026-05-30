@@ -311,7 +311,7 @@ class LiveChatPanel(wx.Panel):
     def kick_patient(self, patient_name):
         dr_username = globals["user_name"]
         self.send_to_server(f"REMOVE_FROM_QUEUE,{dr_username},{patient_name}")
-        self.send_to_server(f"KICK_PATIENT,{patient_name}")
+        # self.send_to_server(f"KICK_PATIENT,{patient_name}")
         self.remote_ip = None
         self.remote_username = None
         self.current_patient_label.Hide()

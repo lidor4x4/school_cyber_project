@@ -177,11 +177,13 @@ def tcp_server():
                             patient_sock.send(methods.encrypt_message(f"ACCEPTED,{doctor_ip}"))
                             sock.send(methods.encrypt_message(patient_ip))
 
-                    elif data.startswith("KICK_PATIENT"):
-                        patient_username = data.split(",")[-1]
-                        if patient_username in clients_by_name:
-                            clients_by_name[patient_username].send(methods.encrypt_message("KICKED"))
-                        sock.send(methods.encrypt_message("OK"))
+
+
+                    # elif data.startswith("KICK_PATIENT"):
+                        # patient_username = data.split(",")[-1]
+                        # if patient_username in clients_by_name:
+                            # clients_by_name[patient_username].send(methods.encrypt_message("KICKED"))
+                        # sock.send(methods.encrypt_message("OK"))
 
 
                 except Exception as e:
