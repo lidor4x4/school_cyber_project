@@ -124,7 +124,6 @@ class LiveChatPanel(wx.Panel):
         controls.Add(self.disable_video_btn, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 10)
         controls.Add(self.disable_audio_btn, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 10)
 
-        # Prescribe button — doctors only
         if self.is_doctor:
             self.prescribe_btn = wx.Button(self, label="Prescribe Meds", size=(160, 56))
             self.prescribe_btn.SetFont(self.body_font)
@@ -139,7 +138,6 @@ class LiveChatPanel(wx.Panel):
 
         self.main_sizer.Add(controls_wrapper, 0, wx.EXPAND | wx.BOTTOM, 10)
 
-        # Prescription box — doctors only
         if self.is_doctor:
             self.prescription_box = wx.TextCtrl(self, size=(400, 100), style=wx.TE_MULTILINE | wx.TE_WORDWRAP)
             self.prescription_box.SetHint("Type prescription here...")
@@ -154,14 +152,20 @@ class LiveChatPanel(wx.Panel):
             self.confirm_rx_btn.Hide()
             self.main_sizer.Add(self.confirm_rx_btn, 0, wx.ALIGN_CENTER | wx.BOTTOM, 10)
 
-        # Queue section — doctors only
-        if self.is_doctor:
-            # Current patient label — shown when someone is in call
+            # Current patient label + Next Patient button — hidden until someone accepted
             self.current_patient_label = wx.StaticText(self, label="")
             self.current_patient_label.SetFont(self.bold_font)
             self.current_patient_label.SetForegroundColour(wx.Colour(15, 110, 86))
             self.current_patient_label.Hide()
             self.main_sizer.Add(self.current_patient_label, 0, wx.ALIGN_CENTER | wx.BOTTOM, 6)
+
+            self.next_patient_btn = wx.Button(self, label="Next Patient", size=(160, 40))
+            self.next_patient_btn.SetFont(self.body_font)
+            self.next_patient_btn.SetBackgroundColour(wx.Colour(200, 80, 50))
+            self.next_patient_btn.SetForegroundColour(wx.Colour(255, 255, 255))
+            self.next_patient_btn.Bind(wx.EVT_BUTTON, self.on_next_patient)
+            self.next_patient_btn.Hide()
+            self.main_sizer.Add(self.next_patient_btn, 0, wx.ALIGN_CENTER | wx.BOTTOM, 10)
 
             queue_sizer = wx.BoxSizer(wx.HORIZONTAL)
             queue_sizer.AddStretchSpacer()
@@ -199,6 +203,22 @@ class LiveChatPanel(wx.Panel):
         threading.Thread(target=self.receive_video, daemon=True).start()
         threading.Thread(target=self.send_audio, daemon=True).start()
         threading.Thread(target=self.receive_audio, daemon=True).start()
+
+    def on_next_patient(self, _):
+        """Doctor ends current call and opens queue for next patient."""
+        if self.remote_username:
+            self.send_to_server(f"KICK_PATIENT,{self.remote_username}")
+        self.remote_ip = None
+        self.remote_username = None
+        self.current_patient_label.Hide()
+        self.next_patient_btn.Hide()
+        self.queue_toggle_btn.Enable()
+        # Clear remote video to black
+        self.remote_video.SetBitmap(wx.Bitmap(VIDEO_W, VIDEO_H))
+        # Auto open queue
+        self.queue_visible = False
+        self.toggle_queue(None)
+        self.main_sizer.Layout()
 
     def toggle_prescription_box(self, _):
         if self.prescription_box.IsShown():
@@ -281,10 +301,9 @@ class LiveChatPanel(wx.Panel):
         self.remote_ip = response.strip()
         self.remote_username = patient_name
         print("Doctor set remote_ip to:", self.remote_ip)
-
-        # Show current patient, disable queue button
         self.current_patient_label.SetLabel(f"In call with: {patient_name}")
         self.current_patient_label.Show()
+        self.next_patient_btn.Show()
         self.queue_toggle_btn.Disable()
         self.queue_toggle_btn.SetLabel("See Queue")
         self.queue_panel.Hide()
@@ -295,15 +314,23 @@ class LiveChatPanel(wx.Panel):
         self.send_to_server(f"KICK_PATIENT,{patient_name}")
         self.remote_ip = None
         self.remote_username = None
-
-        # Hide current patient label, re-enable queue
         self.current_patient_label.Hide()
+        self.next_patient_btn.Hide()
         self.queue_toggle_btn.Enable()
+        self.remote_video.SetBitmap(wx.Bitmap(VIDEO_W, VIDEO_H))
         self.main_sizer.Layout()
-
         wx.CallAfter(self.refresh_queue_ui, "")
 
     def handle_go_back(self, _):
+        # Send a black frame so the remote sees camera closed before disconnect
+        try:
+            black = np.zeros((VIDEO_H, VIDEO_W, 3), dtype=np.uint8)
+            _, buf = cv2.imencode(".jpg", black)
+            for _ in range(3):
+                self.video_udp.sendto(buf.tobytes(), (self.server_ip, VIDEO_PORT))
+                time.sleep(0.05)
+        except:
+            pass
         self.stop_event.set()
         self.switch_panel("home")
 
