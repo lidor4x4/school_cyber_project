@@ -202,16 +202,17 @@ def udp_relay(port, client_list):
         for ip in ips_to_remove[:]:
             client_list[:] = [c for c in client_list if c[0] != ip]
             ips_to_remove.remove(ip)
-            print(f"[CLEAN] Removed {ip} from port {port}")
 
         data, addr = sock.recvfrom(65535)
 
         client_list[:] = [c for c in client_list if c[0] != addr[0]]
         client_list.append(addr)
-        print(f"[ADD] {addr} on port {port}, clients now={client_list}")
 
         if data == b"PING":
+            print(f"[PING port={port}] from {addr}, list now={client_list}")
             continue
+
+        print(f"[DATA port={port}] from {addr}, relaying to {[c for c in client_list if c != addr]}")
 
         sender_ip = addr[0].encode()
         length = len(sender_ip).to_bytes(1, 'big')
@@ -220,7 +221,6 @@ def udp_relay(port, client_list):
         for client in client_list:
             if client != addr:
                 sock.sendto(packet, client)
-
 
 if __name__ == "__main__":
     threading.Thread(target=tcp_server, daemon=True).start()
