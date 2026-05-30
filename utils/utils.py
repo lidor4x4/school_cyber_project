@@ -218,7 +218,7 @@ SELECT password FROM Users WHERE email = '{email}'
         online_status = cursor.fetchone()[0]
         return online_status
 
-    def add_patient_prescription(patient_username, patient_prescription):
+    def add_patient_prescription(self, patient_username, patient_prescription):
         try:
             db_cursor.execute("""UPDATE Users SET prescribed_medication = ? WHERE username = ?""", 
                             (patient_prescription, patient_username))

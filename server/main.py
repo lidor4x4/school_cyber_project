@@ -129,7 +129,8 @@ def tcp_server():
                         patient_username = data.split(",")[-2]
                         patient_prescription = data.split(",")[-1]
                         print("dsdad", data)
-                        print(f"terstdrtdsrsd {patient_username}, {patient_prescription}")
+                        print(patient_username)
+                        print(patient_prescription)
                         patient_prescription_response = methods.add_patient_prescription(patient_username, patient_prescription)
                         sock.send(methods.encrypt_message(patient_prescription_response))
 
