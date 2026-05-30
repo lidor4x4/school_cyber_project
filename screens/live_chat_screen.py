@@ -207,7 +207,6 @@ class LiveChatPanel(wx.Panel):
         if self.remote_username:
             dr_username = globals["user_name"]
             self.send_to_server(f"REMOVE_FROM_QUEUE,{dr_username},{self.remote_username}")
-            self.send_to_server(f"KICK_PATIENT,{self.remote_username}")
         self.remote_ip = None
         self.remote_username = None
         self.current_patient_label.Hide()
@@ -217,7 +216,6 @@ class LiveChatPanel(wx.Panel):
         self.queue_visible = False
         self.toggle_queue(None)
         self.main_sizer.Layout()
-
     def toggle_prescription_box(self, _):
         if self.prescription_box.IsShown():
             self.prescription_box.Hide()
@@ -311,7 +309,6 @@ class LiveChatPanel(wx.Panel):
     def kick_patient(self, patient_name):
         dr_username = globals["user_name"]
         self.send_to_server(f"REMOVE_FROM_QUEUE,{dr_username},{patient_name}")
-        # self.send_to_server(f"KICK_PATIENT,{patient_name}")
         self.remote_ip = None
         self.remote_username = None
         self.current_patient_label.Hide()
@@ -319,7 +316,9 @@ class LiveChatPanel(wx.Panel):
         self.queue_toggle_btn.Enable()
         self.remote_video.SetBitmap(self.video_off_bmp)
         self.main_sizer.Layout()
-        wx.CallAfter(self.refresh_queue_ui, "")
+        if self.queue_visible:
+            self._queue_loading = True
+            threading.Thread(target=self.load_queue, daemon=True).start()
 
 
     def handle_go_back(self, _):
