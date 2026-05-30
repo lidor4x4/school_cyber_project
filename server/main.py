@@ -16,6 +16,7 @@ AUDIO_PORT = 12347
 video_clients = []
 audio_clients = []
 ips_to_remove = []
+allowed_session_ips = set()
 
 methods = utils.Utils()
 
@@ -99,7 +100,6 @@ def tcp_server():
                         user_role = methods.get_role_by_username(name)
                         sock.send(methods.encrypt_message(user_role))
 
-
                     elif data.startswith("VERIFY"):
                         username_verify = data.split(",")[-1]
                         verify_status = str(methods.get_verified_by_username(username_verify))
@@ -118,7 +118,6 @@ def tcp_server():
                         user_to_change = data.split(',')[1].strip()
                         methods.set_user_online_status(user_to_change, 1)
                         sock.send(methods.encrypt_message("User status changed successfully!!"))
-
 
                     elif data.startswith("GET_QUEUE_ONLINE"):
                         dr_username = data.split(',')[1].strip()
@@ -173,10 +172,17 @@ def tcp_server():
 
                             video_clients.clear()
                             audio_clients.clear()
-                            print("[RESET] Cleared UDP client lists")
+                            allowed_session_ips.clear()
+                            print("[RESET] Cleared UDP client lists and allowed IPs")
 
                             patient_ip = patient_sock.getpeername()[0]
                             doctor_ip = sock.getpeername()[0]
+
+                            allowed_session_ips.add(patient_ip)
+                            allowed_session_ips.add(doctor_ip)
+
+                            print(f"[SESSION] doctor={doctor_ip}, patient={patient_ip}")
+                            print(f"[ALLOWED] {allowed_session_ips}")
 
                             patient_sock.send(methods.encrypt_message(f"ACCEPTED,{doctor_ip}"))
                             sock.send(methods.encrypt_message(patient_ip))
@@ -204,7 +210,7 @@ def tcp_server():
                     sock.close()
 
 
-def udp_relay(port, client_list):
+def udp_relay(port, client_list, allowed_ips):
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.bind(("0.0.0.0", port))
     print(f"UDP relay on port {port} running")
@@ -217,8 +223,10 @@ def udp_relay(port, client_list):
 
         data, addr = sock.recvfrom(65535)
 
-        client_list[:] = [c for c in client_list if c[0] != addr[0]]
+        if allowed_ips and addr[0] not in allowed_ips:
+            continue
 
+        client_list[:] = [c for c in client_list if c[0] != addr[0]]
         client_list.append(addr)
         print(f"[ADD] {addr} to port {port}")
 
@@ -233,8 +241,8 @@ def udp_relay(port, client_list):
 
 if __name__ == "__main__":
     threading.Thread(target=tcp_server, daemon=True).start()
-    threading.Thread(target=udp_relay, args=(VIDEO_PORT, video_clients), daemon=True).start()
-    threading.Thread(target=udp_relay, args=(AUDIO_PORT, audio_clients), daemon=True).start()
+    threading.Thread(target=udp_relay, args=(VIDEO_PORT, video_clients, allowed_session_ips), daemon=True).start()
+    threading.Thread(target=udp_relay, args=(AUDIO_PORT, audio_clients, allowed_session_ips), daemon=True).start()
 
     print("SERVER READY")
 
