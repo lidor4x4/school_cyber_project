@@ -270,7 +270,7 @@ class LiveChatPanel(wx.Panel):
             return
         if not self.queue_visible:
             return
-        self.queue_sizer.Clear()
+        self.queue_sizer.Clear(delete_windows=True)  # THIS fixes the ghost "no patients" label
         if not response or "The queue is empty" in response:
             txt = wx.StaticText(self.queue_panel, label="No online patients in queue.")
             self.queue_sizer.Add(txt, 0, wx.ALIGN_RIGHT | wx.ALL, 10)
@@ -280,7 +280,7 @@ class LiveChatPanel(wx.Panel):
                 self.add_patient_row(patient.strip())
         self.queue_panel.Layout()
         self.main_sizer.Layout()
-
+        
     def add_patient_row(self, patient_name):
         row = wx.BoxSizer(wx.HORIZONTAL)
         row.AddStretchSpacer()
@@ -319,7 +319,12 @@ class LiveChatPanel(wx.Panel):
         self.queue_toggle_btn.Enable()
         self.remote_video.SetBitmap(self.video_off_bmp)
         self.main_sizer.Layout()
-        wx.CallAfter(self.refresh_queue_ui, "")
+        wx.MessageBox(f"{patient_name} has been removed from the queue.", "Kicked", wx.OK | wx.ICON_INFORMATION)
+        # Force reload queue so kicked patient disappears
+        if self.queue_visible:
+            self._queue_loading = True
+            threading.Thread(target=self.load_queue, daemon=True).start()
+
 
     def handle_go_back(self, _):
         self.stop_event.set()
