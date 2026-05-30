@@ -32,6 +32,8 @@ class LiveChatPanel(wx.Panel):
 
         self.stop_event = threading.Event()
 
+        self.is_doctor = globals.get("user_role") == "dr"
+
         ICON_BOX = 64
         BTN_BOX = 76
 
@@ -119,15 +121,17 @@ class LiveChatPanel(wx.Panel):
         )
         self.disable_audio_btn.Bind(wx.EVT_BUTTON, self.toggle_audio)
 
-        self.prescribe_btn = wx.Button(self, label="Prescribe Meds", size=(160, 56))
-        self.prescribe_btn.SetFont(self.body_font)
-        self.prescribe_btn.SetBackgroundColour(wx.Colour(15, 110, 86))
-        self.prescribe_btn.SetForegroundColour(wx.Colour(225, 245, 238))
-        self.prescribe_btn.Bind(wx.EVT_BUTTON, self.toggle_prescription_box)
-
         controls.Add(self.disable_video_btn, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 10)
         controls.Add(self.disable_audio_btn, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 10)
-        controls.Add(self.prescribe_btn, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 10)
+
+        # Prescribe button — doctors only
+        if self.is_doctor:
+            self.prescribe_btn = wx.Button(self, label="Prescribe Meds", size=(160, 56))
+            self.prescribe_btn.SetFont(self.body_font)
+            self.prescribe_btn.SetBackgroundColour(wx.Colour(15, 110, 86))
+            self.prescribe_btn.SetForegroundColour(wx.Colour(225, 245, 238))
+            self.prescribe_btn.Bind(wx.EVT_BUTTON, self.toggle_prescription_box)
+            controls.Add(self.prescribe_btn, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 10)
 
         controls_wrapper.AddStretchSpacer()
         controls_wrapper.Add(controls, 0, wx.ALIGN_CENTER)
@@ -135,36 +139,47 @@ class LiveChatPanel(wx.Panel):
 
         self.main_sizer.Add(controls_wrapper, 0, wx.EXPAND | wx.BOTTOM, 10)
 
-        self.prescription_box = wx.TextCtrl(self, size=(400, 100), style=wx.TE_MULTILINE | wx.TE_WORDWRAP)
-        self.prescription_box.SetHint("Type prescription here...")
-        self.prescription_box.Hide()
-        self.main_sizer.Add(self.prescription_box, 0, wx.ALIGN_CENTER | wx.BOTTOM, 10)
+        # Prescription box — doctors only
+        if self.is_doctor:
+            self.prescription_box = wx.TextCtrl(self, size=(400, 100), style=wx.TE_MULTILINE | wx.TE_WORDWRAP)
+            self.prescription_box.SetHint("Type prescription here...")
+            self.prescription_box.Hide()
+            self.main_sizer.Add(self.prescription_box, 0, wx.ALIGN_CENTER | wx.BOTTOM, 10)
 
-        self.confirm_rx_btn = wx.Button(self, label="Confirm Prescription", size=(200, 40))
-        self.confirm_rx_btn.SetFont(self.body_font)
-        self.confirm_rx_btn.SetBackgroundColour(wx.Colour(15, 110, 86))
-        self.confirm_rx_btn.SetForegroundColour(wx.Colour(225, 245, 238))
-        self.confirm_rx_btn.Bind(wx.EVT_BUTTON, self.confirm_prescription)
-        self.confirm_rx_btn.Hide()
-        self.main_sizer.Add(self.confirm_rx_btn, 0, wx.ALIGN_CENTER | wx.BOTTOM, 10)
+            self.confirm_rx_btn = wx.Button(self, label="Confirm Prescription", size=(200, 40))
+            self.confirm_rx_btn.SetFont(self.body_font)
+            self.confirm_rx_btn.SetBackgroundColour(wx.Colour(15, 110, 86))
+            self.confirm_rx_btn.SetForegroundColour(wx.Colour(225, 245, 238))
+            self.confirm_rx_btn.Bind(wx.EVT_BUTTON, self.confirm_prescription)
+            self.confirm_rx_btn.Hide()
+            self.main_sizer.Add(self.confirm_rx_btn, 0, wx.ALIGN_CENTER | wx.BOTTOM, 10)
 
-        queue_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        queue_sizer.AddStretchSpacer()
+        # Queue section — doctors only
+        if self.is_doctor:
+            # Current patient label — shown when someone is in call
+            self.current_patient_label = wx.StaticText(self, label="")
+            self.current_patient_label.SetFont(self.bold_font)
+            self.current_patient_label.SetForegroundColour(wx.Colour(15, 110, 86))
+            self.current_patient_label.Hide()
+            self.main_sizer.Add(self.current_patient_label, 0, wx.ALIGN_CENTER | wx.BOTTOM, 6)
 
-        self.queue_toggle_btn = wx.Button(self, label="See Queue", size=(140, 40))
-        self.queue_toggle_btn.SetFont(self.label_font)
-        self.queue_toggle_btn.SetForegroundColour(wx.Colour(107, 107, 107))
-        self.queue_toggle_btn.Bind(wx.EVT_BUTTON, self.toggle_queue)
-        queue_sizer.Add(self.queue_toggle_btn, 0, wx.RIGHT | wx.BOTTOM, 20)
+            queue_sizer = wx.BoxSizer(wx.HORIZONTAL)
+            queue_sizer.AddStretchSpacer()
 
-        self.main_sizer.Add(queue_sizer, 0, wx.EXPAND)
+            self.queue_toggle_btn = wx.Button(self, label="See Queue", size=(140, 40))
+            self.queue_toggle_btn.SetFont(self.label_font)
+            self.queue_toggle_btn.SetForegroundColour(wx.Colour(107, 107, 107))
+            self.queue_toggle_btn.Bind(wx.EVT_BUTTON, self.toggle_queue)
+            queue_sizer.Add(self.queue_toggle_btn, 0, wx.RIGHT | wx.BOTTOM, 20)
 
-        self.queue_panel = wx.Panel(self)
-        self.queue_panel.Hide()
-        self.queue_panel.SetBackgroundColour(wx.Colour(240, 240, 240))
-        self.queue_sizer = wx.BoxSizer(wx.VERTICAL)
-        self.queue_panel.SetSizer(self.queue_sizer)
-        self.main_sizer.Add(self.queue_panel, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 20)
+            self.main_sizer.Add(queue_sizer, 0, wx.EXPAND)
+
+            self.queue_panel = wx.Panel(self)
+            self.queue_panel.Hide()
+            self.queue_panel.SetBackgroundColour(wx.Colour(240, 240, 240))
+            self.queue_sizer = wx.BoxSizer(wx.VERTICAL)
+            self.queue_panel.SetSizer(self.queue_sizer)
+            self.main_sizer.Add(self.queue_panel, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 20)
 
         self.SetSizer(self.main_sizer)
 
@@ -211,16 +226,17 @@ class LiveChatPanel(wx.Panel):
         self.main_sizer.Layout()
 
     def toggle_queue(self, _):
-        self.queue_visible = not self.queue_visible
-        if self.queue_visible:
+        if not self.queue_visible:
             self.queue_toggle_btn.SetLabel("Hide Queue")
             self.queue_panel.Show()
+            self.queue_visible = True
             if not self._queue_loading:
                 self._queue_loading = True
                 threading.Thread(target=self.load_queue, daemon=True).start()
         else:
             self.queue_toggle_btn.SetLabel("See Queue")
             self.queue_panel.Hide()
+            self.queue_visible = False
         self.main_sizer.Layout()
 
     def load_queue(self):
@@ -232,6 +248,8 @@ class LiveChatPanel(wx.Panel):
             self._queue_loading = False
 
     def refresh_queue_ui(self, response):
+        if not self.is_doctor:
+            return
         if not self.queue_visible:
             return
         self.queue_sizer.Clear()
@@ -263,12 +281,26 @@ class LiveChatPanel(wx.Panel):
         self.remote_ip = response.strip()
         self.remote_username = patient_name
         print("Doctor set remote_ip to:", self.remote_ip)
-        wx.CallAfter(self.refresh_queue_ui, "")
+
+        # Show current patient, disable queue button
+        self.current_patient_label.SetLabel(f"In call with: {patient_name}")
+        self.current_patient_label.Show()
+        self.queue_toggle_btn.Disable()
+        self.queue_toggle_btn.SetLabel("See Queue")
+        self.queue_panel.Hide()
+        self.queue_visible = False
+        self.main_sizer.Layout()
 
     def kick_patient(self, patient_name):
         self.send_to_server(f"KICK_PATIENT,{patient_name}")
         self.remote_ip = None
         self.remote_username = None
+
+        # Hide current patient label, re-enable queue
+        self.current_patient_label.Hide()
+        self.queue_toggle_btn.Enable()
+        self.main_sizer.Layout()
+
         wx.CallAfter(self.refresh_queue_ui, "")
 
     def handle_go_back(self, _):
