@@ -352,6 +352,8 @@ class LiveChatPanel(wx.Panel):
                 ip_len = data[0]
                 sender_ip = data[1:1 + ip_len].decode()
                 data = data[1 + ip_len:]
+                
+                print(f"[RECV VIDEO] sender_ip={sender_ip}, my remote_ip={self.remote_ip}, match={sender_ip == self.remote_ip}")
 
                 if self.remote_ip and sender_ip != self.remote_ip:
                     continue
