@@ -49,14 +49,12 @@ def tcp_server():
 
                     if not data:
                         sockets.remove(sock)
-
                         try:
                             user_ip = sock.getpeername()[0]
                             ips_to_remove.append(user_ip)
                             print(f"[DISCONNECT] {user_ip}")
                         except:
                             pass
-
                         sock.close()
                         continue
 
@@ -66,9 +64,7 @@ def tcp_server():
                     if data.startswith("SIGN_UP"):
                         fields = data.split(', ')[1:]
                         email, password, username, user_type, dr_specialty = map(str.strip, fields)
-
                         response = methods.handle_signup(email, password, username, user_type, dr_specialty)
-
                         if response == "200":
                             clients_by_name[username] = sock
                             sock.send(methods.encrypt_message("Sign up was successful!!"))
@@ -79,10 +75,8 @@ def tcp_server():
                         fields = [x.strip() for x in data.split(',')]
                         email = fields[1]
                         password = fields[2]
-
                         response = methods.handle_login(email, password)
                         username_login = methods.get_username(email)
-
                         if response == "200":
                             clients_by_name[username_login] = sock
                             sock.send(methods.encrypt_message(f"Login was successful!!, {username_login}"))
@@ -160,7 +154,6 @@ def tcp_server():
                     elif data.startswith("ADD_TO_DR_QUEUE"):
                         add_queue_dr_username = data.split(",")[-2]
                         user_username = data.split(",")[-1]
-
                         ret = methods.add_to_dr_queue(add_queue_dr_username, user_username)
                         sock.send(methods.encrypt_message(ret))
 
@@ -170,10 +163,10 @@ def tcp_server():
                         if patient_username in clients_by_name:
                             patient_sock = clients_by_name[patient_username]
 
-                            video_clients.clear()
-                            audio_clients.clear()
+                            # Only reset allowed IPs — do NOT clear client lists
+                            # The doctor is already registered in client_list from
+                            # sending video before accept, wiping it breaks the call
                             allowed_session_ips.clear()
-                            print("[RESET] Cleared UDP client lists and allowed IPs")
 
                             patient_ip = patient_sock.getpeername()[0]
                             doctor_ip = sock.getpeername()[0]
@@ -189,24 +182,19 @@ def tcp_server():
 
                     elif data.startswith("KICK_PATIENT"):
                         patient_username = data.split(",")[-1]
-
                         if patient_username in clients_by_name:
                             clients_by_name[patient_username].send(methods.encrypt_message("KICKED"))
-
                         sock.send(methods.encrypt_message("OK"))
 
                 except Exception as e:
                     print("TCP error:", e)
-
                     if sock in sockets:
                         sockets.remove(sock)
-
                     try:
                         user_ip = sock.getpeername()[0]
                         ips_to_remove.append(user_ip)
                     except:
                         pass
-
                     sock.close()
 
 
