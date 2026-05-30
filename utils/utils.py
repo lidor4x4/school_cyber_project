@@ -8,7 +8,7 @@ from globals import globals
 class Utils:
     global sqlite_file
     global fernet
-    sqlite_file = r"C:\Users\Pc2\Desktop\school_cyber_project\DB\final_project_db.sqlite"
+    sqlite_file = r"C:\Users\lidor\Desktop\final_project_final\school_cyber_project\DB\final_project_db.sqlite"
     
     FERNET_KEY = b'WmNayxAvMomFuoWRSyEtFaHhptS-nrodlSnZsvHpeoI='
     fernet = Fernet(FERNET_KEY)
@@ -42,14 +42,22 @@ class Utils:
             hashed_password = bcrypt.hashpw(bytes, salt)
             if user_type == "dr":
                 verified = False
-            conn = sqlite3.connect(sqlite_file)
-            db_cursor = conn.cursor()
-            db_cursor.execute("""INSERT INTO Users (email, password, username, role, verified, dr_specialty)
-    VALUES (?, ?, ?, ?, ?, ?);""", (email, str(hashed_password.decode()), username, user_type, verified, dr_specialty))
+                conn = sqlite3.connect(sqlite_file)
+                db_cursor = conn.cursor()
+                db_cursor.execute("""INSERT INTO Users (email, password, username, role, verified, dr_specialty)
+        VALUES (?, ?, ?, ?, ?, ?);""", (email, str(hashed_password.decode()), username, user_type, verified, dr_specialty))
 
-            conn.commit()
-            conn.close()
+                conn.commit()
+                conn.close()
+            else:
+                verified = True
+                conn = sqlite3.connect(sqlite_file)
+                db_cursor = conn.cursor()
+                db_cursor.execute("""INSERT INTO Users (email, password, username, role, verified, dr_specialty)
+        VALUES (?, ?, ?, ?, ?, ?);""", (email, str(hashed_password.decode()), username, user_type, verified,None))
 
+                conn.commit()
+                conn.close()         
             return "200"
 
         except Exception as e :
@@ -209,7 +217,88 @@ SELECT password FROM Users WHERE email = '{email}'
         online_status = cursor.fetchone()[0]
         return online_status
 
+    def add_patient_prescription(patient_username, patient_prescription):
+        try:
+            db_cursor.execute("""UPDATE Users SET prescribed_medication = ? WHERE username = ?""", 
+                            (patient_prescription, patient_username))
 
+            conn.commit()
+            conn.close()
+            return "Prescribed medication successfully!"
+
+        except Exception as e :
+            return f"{e}"
+
+    def get_patient_medication(self, username):
+        try:
+            conn = sqlite3.connect(sqlite_file)
+            cursor = conn.cursor()
+            cursor.execute("SELECT prescribed_medication FROM Users WHERE username = ?", (username,))
+            row = cursor.fetchone()
+            conn.close()
+            return row[0] if row and row[0] else "NONE"
+        except Exception as e:
+            print(f"Error fetching medication: {e}")
+            return "NONE"
+
+    def get_doctor_patients_medication(self, dr_username):
+        try:
+            conn = sqlite3.connect(sqlite_file)
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT clients_in_line FROM Users WHERE username = ?", (dr_username,)
+            )
+            row = cursor.fetchone()
+
+            if not row or not row[0]:
+                conn.close()
+                return "NONE"
+
+            patients = [p.strip() for p in row[0].split(",") if p.strip()]
+
+            results = []
+            for patient in patients:
+                cursor.execute(
+                    "SELECT prescribed_medication FROM Users WHERE username = ?", (patient,)
+                )
+                med_row = cursor.fetchone()
+                medication = med_row[0] if med_row and med_row[0] else ""
+                results.append(f"{patient}:{medication}")
+
+            conn.close()
+            return ",".join(results) if results else "NONE"
+
+        except Exception as e:
+            print(f"Error fetching patients medication: {e}")
+            return "NONE"
+
+    def get_dr_queue_by_username_online(self, username):
+        try:
+            conn = sqlite3.connect(sqlite_file) 
+            cursor = conn.cursor()
+            cursor.execute("SELECT clients_in_line FROM Users WHERE username = ? AND is_online = ?",(username,1,))
+            queue_tup = cursor.fetchone()
+            print("test", queue_tup)
+            if queue_tup and queue_tup[0]:
+                users_in_queue_full = queue_tup[0].split(",")
+                online_users_in_queue = []
+                for user in users_in_queue_full:
+                    if self.is_user_online(user):
+                        online_users_in_queue.append(user)
+                conn.commit()
+                conn.close()
+                return ",".join(online_users_in_queue) if online_users_in_queue else "The queue is empty"
+
+            
+            else:
+                conn.commit()
+                conn.close()
+                return "The queue is empty"
+            
+        except Exception as e:
+            print(f"Error fetching dr queue: {e}")
+            return "The queue is empty"
+        
 
     def get_dr_queue_by_username(self, username):
         try:

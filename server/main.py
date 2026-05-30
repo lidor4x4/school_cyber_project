@@ -120,10 +120,26 @@ def tcp_server():
                         sock.send(methods.encrypt_message("User status changed successfully!!"))
 
 
-                    elif data.startswith("GET_QUEUE"):
+                    elif data.startswith("GET_QUEUE_ONLINE"):
                         dr_username = data.split(',')[1].strip()
-                        dr_queue = methods.get_dr_queue_by_username(dr_username)
+                        dr_queue = methods.get_dr_queue_by_username_online(dr_username)
                         sock.send(methods.encrypt_message(dr_queue))
+
+                    elif data.startswith("PRESCRIPTION"):
+                        patient_username = data.split()[-2]
+                        patient_prescription = data.split()[-1]
+                        patient_prescription_response = methods.add_patient_prescription(patient_username, patient_prescription)
+                        sock.send(methods.encrypt_message(patient_prescription_response))
+
+                    elif data.startswith("GET_MY_MEDICATION"):
+                        username = data.split(",")[1].strip()
+                        result = methods.get_patient_medication(username)
+                        sock.send(methods.encrypt_message(result))
+
+                    elif data.startswith("GET_MY_PATIENTS_MEDICATION"):
+                        dr_username = data.split(",")[1].strip()
+                        result = methods.get_doctor_patients_medication(dr_username)
+                        sock.send(methods.encrypt_message(result))
 
                     elif data.startswith("GET_VERIFIED_DR_USERS"):
                         dr_users = ",".join(methods.get_verified_dr_users())

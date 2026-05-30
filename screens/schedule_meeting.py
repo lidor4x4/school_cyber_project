@@ -22,7 +22,6 @@ class ScheduleMeetingPanel(wx.Panel):
 
         self.sizer = wx.BoxSizer(wx.VERTICAL)
 
-        # ── Header ────────────────────────────────────────────────────────────
         header_panel = wx.Panel(self)
         header_panel.SetBackgroundColour(wx.Colour(255, 255, 255))
         header_panel.SetMinSize((-1, 70))
@@ -47,7 +46,6 @@ class ScheduleMeetingPanel(wx.Panel):
         self.sizer.Add(header_panel, 0, wx.EXPAND)
         self.sizer.Add(wx.StaticLine(self), 0, wx.EXPAND)
 
-        # ── Page title + filter row ───────────────────────────────────────────
         top_row = wx.BoxSizer(wx.HORIZONTAL)
 
         self.schedule_meeting_text = wx.StaticText(self, label="Schedule a Meeting")
@@ -71,13 +69,11 @@ class ScheduleMeetingPanel(wx.Panel):
 
         self.sizer.Add(wx.StaticLine(self), 0, wx.EXPAND | wx.TOP, 12)
 
-        # ── Loading text ──────────────────────────────────────────────────────
         self.loading_text = wx.StaticText(self, label="Loading doctors...")
         self.loading_text.SetFont(self.body_font)
         self.loading_text.SetForegroundColour(wx.Colour(107, 107, 107))
         self.sizer.Add(self.loading_text, 0, wx.ALIGN_CENTER | wx.ALL, 20)
 
-        # ── Scrollable grid ───────────────────────────────────────────────────
         self.grid_sizer = wx.GridSizer(cols=3, hgap=14, vgap=14)
 
         self.scroll_panel = wx.ScrolledWindow(self, size=(500, 500))

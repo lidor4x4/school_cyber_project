@@ -65,7 +65,6 @@ class WaitingRoomPanel(wx.Panel):
         threading.Thread(target=self.wait_for_server, daemon=True).start()
 
     def _on_back_clicked(self, event):
-        """Clean up resources before switching panels."""
         self.cleanup()
         self.switch_panel("home")
 
@@ -92,7 +91,7 @@ class WaitingRoomPanel(wx.Panel):
                 self.client_socket.settimeout(None)
             except:
                 pass
-            print("Background waiting thread has successfully closed.")
+            print("Background thread has successfully closed.")
 
     def handle_server_message(self, message):
         if not self.running:

@@ -20,7 +20,6 @@ class SignupPanel(wx.Panel):
 
         self.sizer = wx.BoxSizer(wx.VERTICAL)
 
-        # ── Header ────────────────────────────────────────────────────────────
         header_panel = wx.Panel(self)
         header_panel.SetBackgroundColour(wx.Colour(255, 255, 255))
         header_panel.SetMinSize((-1, 70))
@@ -45,7 +44,6 @@ class SignupPanel(wx.Panel):
         self.sizer.Add(header_panel, 0, wx.EXPAND)
         self.sizer.Add(wx.StaticLine(self), 0, wx.EXPAND)
 
-        # ── Title ─────────────────────────────────────────────────────────────
         self.sizer.AddSpacer(24)
 
         page_title = wx.StaticText(self, label="Create an account")
@@ -60,7 +58,6 @@ class SignupPanel(wx.Panel):
 
         self.sizer.AddSpacer(16)
 
-        # ── Username ──────────────────────────────────────────────────────────
         self.username_error = wx.StaticText(self, label="")
         self.username_error.SetFont(self.error_font)
         self.username_error.SetForegroundColour(wx.Colour(162, 45, 45))
@@ -71,7 +68,6 @@ class SignupPanel(wx.Panel):
         self.username_ctrl.SetFont(self.body_font)
         self.sizer.Add(self.username_ctrl, 0, wx.ALL | wx.CENTER, 6)
 
-        # ── Email ─────────────────────────────────────────────────────────────
         self.email_error = wx.StaticText(self, label="")
         self.email_error.SetFont(self.error_font)
         self.email_error.SetForegroundColour(wx.Colour(162, 45, 45))
@@ -82,7 +78,6 @@ class SignupPanel(wx.Panel):
         self.email_ctrl.SetFont(self.body_font)
         self.sizer.Add(self.email_ctrl, 0, wx.ALL | wx.CENTER, 6)
 
-        # ── Password ──────────────────────────────────────────────────────────
         self.password_error = wx.StaticText(self, label="")
         self.password_error.SetFont(self.error_font)
         self.password_error.SetForegroundColour(wx.Colour(162, 45, 45))
@@ -93,7 +88,6 @@ class SignupPanel(wx.Panel):
         self.password_ctrl.SetFont(self.body_font)
         self.sizer.Add(self.password_ctrl, 0, wx.ALL | wx.CENTER, 6)
 
-        # ── Confirm password ──────────────────────────────────────────────────
         self.confirm_password_error = wx.StaticText(self, label="")
         self.confirm_password_error.SetFont(self.error_font)
         self.confirm_password_error.SetForegroundColour(wx.Colour(162, 45, 45))
@@ -106,7 +100,6 @@ class SignupPanel(wx.Panel):
 
         self.sizer.AddSpacer(10)
 
-        # ── Role selection ────────────────────────────────────────────────────
         self.slection_error = wx.StaticText(self, label="")
         self.slection_error.SetFont(self.error_font)
         self.slection_error.SetForegroundColour(wx.Colour(162, 45, 45))
@@ -123,7 +116,6 @@ class SignupPanel(wx.Panel):
         self.chk_dr.Bind(wx.EVT_CHECKBOX, self.on_doctor_checked)
         self.sizer.Add(self.chk_dr, 0, wx.ALL | wx.CENTER, 4)
 
-        # ── Doctor specialty ──────────────────────────────────────────────────
         self.dr_specialty_ctrl_error = wx.StaticText(self, label="")
         self.dr_specialty_ctrl_error.SetFont(self.error_font)
         self.dr_specialty_ctrl_error.SetForegroundColour(wx.Colour(162, 45, 45))
@@ -137,7 +129,6 @@ class SignupPanel(wx.Panel):
 
         self.sizer.AddSpacer(16)
 
-        # ── Signup button ─────────────────────────────────────────────────────
         self.signup_btn = wx.Button(self, label="Create Account", size=(300, 44))
         self.signup_btn.SetBackgroundColour(wx.Colour(15, 110, 86))
         self.signup_btn.SetForegroundColour(wx.Colour(225, 245, 238))
@@ -145,7 +136,6 @@ class SignupPanel(wx.Panel):
         self.signup_btn.Bind(wx.EVT_BUTTON, self.on_signup)
         self.sizer.Add(self.signup_btn, 0, wx.ALL | wx.CENTER, 5)
 
-        # ── Back to home button ───────────────────────────────────────────────
         self.back_btn = wx.Button(self, label="Back to Home", size=(300, 36))
         self.back_btn.SetFont(self.label_font)
         self.back_btn.SetForegroundColour(wx.Colour(107, 107, 107))

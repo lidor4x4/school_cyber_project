@@ -20,7 +20,6 @@ class LoginPanel(wx.Panel):
 
         self.sizer = wx.BoxSizer(wx.VERTICAL)
 
-        # ── Header ────────────────────────────────────────────────────────────
         header_panel = wx.Panel(self)
         header_panel.SetBackgroundColour(wx.Colour(255, 255, 255))
         header_panel.SetMinSize((-1, 70))
@@ -45,7 +44,6 @@ class LoginPanel(wx.Panel):
         self.sizer.Add(header_panel, 0, wx.EXPAND)
         self.sizer.Add(wx.StaticLine(self), 0, wx.EXPAND)
 
-        # ── Title ─────────────────────────────────────────────────────────────
         self.sizer.AddSpacer(30)
         page_title = wx.StaticText(self, label="Log in")
         page_title.SetFont(self.title_font)
@@ -59,13 +57,11 @@ class LoginPanel(wx.Panel):
 
         self.sizer.AddSpacer(20)
 
-        # ── Server info message ───────────────────────────────────────────────
         self.info = wx.StaticText(self, label="")
         self.info.SetFont(self.label_font)
         self.info.SetForegroundColour(wx.Colour(133, 79, 11))
         self.sizer.Add(self.info, 0, wx.ALL | wx.CENTER, 4)
 
-        # ── Email ─────────────────────────────────────────────────────────────
         self.email_error = wx.StaticText(self, label="")
         self.email_error.SetFont(self.error_font)
         self.email_error.SetForegroundColour(wx.Colour(162, 45, 45))
@@ -76,7 +72,6 @@ class LoginPanel(wx.Panel):
         self.email_ctrl.SetFont(self.body_font)
         self.sizer.Add(self.email_ctrl, 0, wx.ALL | wx.CENTER, 6)
 
-        # ── Password ──────────────────────────────────────────────────────────
         self.password_error = wx.StaticText(self, label="")
         self.password_error.SetFont(self.error_font)
         self.password_error.SetForegroundColour(wx.Colour(162, 45, 45))
@@ -89,7 +84,6 @@ class LoginPanel(wx.Panel):
 
         self.sizer.AddSpacer(16)
 
-        # ── Login button ──────────────────────────────────────────────────────
         self.login_btn = wx.Button(self, label="Log In", size=(300, 44))
         self.login_btn.SetBackgroundColour(wx.Colour(15, 110, 86))
         self.login_btn.SetForegroundColour(wx.Colour(225, 245, 238))
@@ -97,7 +91,6 @@ class LoginPanel(wx.Panel):
         self.login_btn.Bind(wx.EVT_BUTTON, self.on_login)
         self.sizer.Add(self.login_btn, 0, wx.ALL | wx.CENTER, 5)
 
-        # ── Go home button ────────────────────────────────────────────────────
         self.home_btn = wx.Button(self, label="Go Home", size=(300, 36))
         self.home_btn.SetFont(self.label_font)
         self.home_btn.SetForegroundColour(wx.Colour(107, 107, 107))

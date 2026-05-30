@@ -102,7 +102,6 @@ class LiveChatPanel(wx.Panel):
         self.main_sizer.Add(video_row, 0, wx.EXPAND)
         self.main_sizer.AddSpacer(12)
 
-        # ── Controls ──────────────────────────────────────────────────────────
         controls_wrapper = wx.BoxSizer(wx.HORIZONTAL)
         controls = wx.BoxSizer(wx.HORIZONTAL)
 
@@ -136,7 +135,6 @@ class LiveChatPanel(wx.Panel):
 
         self.main_sizer.Add(controls_wrapper, 0, wx.EXPAND | wx.BOTTOM, 10)
 
-        # ── Prescription textbox + confirm button (hidden by default) ──────────
         self.prescription_box = wx.TextCtrl(self, size=(400, 100), style=wx.TE_MULTILINE | wx.TE_WORDWRAP)
         self.prescription_box.SetHint("Type prescription here...")
         self.prescription_box.Hide()
@@ -227,7 +225,7 @@ class LiveChatPanel(wx.Panel):
     def load_queue(self):
         try:
             username = globals["user_name"]
-            response = self.send_to_server(f"GET_QUEUE,{username}")
+            response = self.send_to_server(f"GET_QUEUE_ONLINE,{username}")
             wx.CallAfter(self.refresh_queue_ui, response)
         finally:
             self._queue_loading = False
@@ -237,7 +235,7 @@ class LiveChatPanel(wx.Panel):
             return
         self.queue_sizer.Clear()
         if not response or "The queue is empty" in response:
-            txt = wx.StaticText(self.queue_panel, label="No patients in queue.")
+            txt = wx.StaticText(self.queue_panel, label="No online patients in queue.")
             self.queue_sizer.Add(txt, 0, wx.ALIGN_RIGHT | wx.ALL, 10)
         else:
             patients = response.split(",")
@@ -326,7 +324,6 @@ class LiveChatPanel(wx.Panel):
             try:
                 data, addr = self.video_udp.recvfrom(MAX_UDP_SIZE)
 
-                # Unpack sender IP embedded by relay
                 ip_len = data[0]
                 sender_ip = data[1:1 + ip_len].decode()
                 data = data[1 + ip_len:]
@@ -373,7 +370,6 @@ class LiveChatPanel(wx.Panel):
             try:
                 data, addr = self.audio_udp.recvfrom(BLOCKSIZE * 2 + 20)
 
-                # Unpack sender IP embedded by relay
                 ip_len = data[0]
                 sender_ip = data[1:1 + ip_len].decode()
                 data = data[1 + ip_len:]
