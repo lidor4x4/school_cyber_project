@@ -165,8 +165,6 @@ def tcp_server():
                             patient_ip = patient_sock.getpeername()[0]
                             doctor_ip = sock.getpeername()[0]
 
-                            # Full clear — doctor re-registers via PING,
-                            # patient re-registers on first packet after ACCEPTED
                             video_clients.clear()
                             audio_clients.clear()
                             print(f"[SESSION] doctor={doctor_ip}, patient={patient_ip}")
@@ -203,16 +201,22 @@ def udp_relay(port, client_list):
             client_list[:] = [c for c in client_list if c[0] != ip]
             ips_to_remove.remove(ip)
 
-        data, addr = sock.recvfrom(65535)
+        try:
+            data, addr = sock.recvfrom(65535)
+        except ConnectionResetError:
+            # Windows sends ICMP port unreachable when client closes UDP socket
+            # This would crash the relay thread — just ignore and continue
+            print(f"[WARN port={port}] ConnectionResetError ignored (Windows ICMP)")
+            continue
+        except Exception as e:
+            print(f"[ERROR port={port}] {e}")
+            continue
 
         client_list[:] = [c for c in client_list if c[0] != addr[0]]
         client_list.append(addr)
 
         if data == b"PING":
-            print(f"[PING port={port}] from {addr}, list now={client_list}")
             continue
-
-        print(f"[DATA port={port}] from {addr}, relaying to {[c for c in client_list if c != addr]}")
 
         sender_ip = addr[0].encode()
         length = len(sender_ip).to_bytes(1, 'big')
@@ -221,6 +225,7 @@ def udp_relay(port, client_list):
         for client in client_list:
             if client != addr:
                 sock.sendto(packet, client)
+
 
 if __name__ == "__main__":
     threading.Thread(target=tcp_server, daemon=True).start()

@@ -71,18 +71,18 @@ class WaitingRoomPanel(wx.Panel):
     def wait_for_server(self):
         try:
             self.client_socket.settimeout(1.0)
-            
+
             while self.running:
                 try:
                     data = self.client_socket.recv(4096)
                     if not data:
-                        break  
-                    
+                        break
+
                     message = self.methods.decrypt_message(data)
                     wx.CallAfter(self.handle_server_message, message)
                 except TimeoutError:
                     continue
-                    
+
         except Exception as e:
             if self.running:
                 print("Error receiving from server:", e)
@@ -96,11 +96,11 @@ class WaitingRoomPanel(wx.Panel):
     def handle_server_message(self, message):
         if not self.running:
             return
-            
+
         if message.startswith("ACCEPTED"):
             parts = message.split(",")
             doctor_ip = parts[1].strip() if len(parts) >= 2 else None
-            self.cleanup() 
+            self.cleanup()
             self.switch_panel("live_chat", doctor_ip)
 
     def cleanup(self):
