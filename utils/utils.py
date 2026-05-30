@@ -275,7 +275,7 @@ SELECT password FROM Users WHERE email = '{email}'
             conn = sqlite3.connect(sqlite_file)
             cursor = conn.cursor()
             cursor.execute(
-                "SELECT clients_in_line FROM Users WHERE username = ?", (dr_username,)
+                "SELECT clients_seen  FROM Users WHERE username = ?", (dr_username,)
             )
             row = cursor.fetchone()
 
@@ -389,15 +389,11 @@ SELECT password FROM Users WHERE email = '{email}'
 
     def add_to_dr_queue(self, dr_username, username):
         try:
-            
-            conn = sqlite3.connect(sqlite_file) 
+            conn = sqlite3.connect(sqlite_file)
             cursor = conn.cursor()
-
-            cursor.execute("SELECT clients_in_line FROM Users WHERE username = ?",(dr_username,))
+            cursor.execute("SELECT clients_in_line FROM Users WHERE username = ?", (dr_username,))
             dr_queue = cursor.fetchone()[0]
 
-            # "fdfsf, fdsfdf, fdsf"
-            
             if dr_queue == "" or dr_queue is None:
                 dr_queue = username
             else:
@@ -405,23 +401,32 @@ SELECT password FROM Users WHERE email = '{email}'
                     print("User already in queue")
                     conn.close()
                     return "User already in queue"
-                
-                dr_queue += f",{username}"   
+                dr_queue = dr_queue + "," + username
 
-            cursor.execute("UPDATE Users SET clients_in_line = ? WHERE username = ?",(dr_queue, dr_username))
+            cursor.execute("UPDATE Users SET clients_in_line = ? WHERE username = ?", (dr_queue, dr_username))
 
+            cursor.execute("SELECT clients_seen FROM Users WHERE username = ?", (dr_username,))
+            row = cursor.fetchone()
+
+            if row[0] is None or row[0] == "":
+                new_val = username
+            else:
+                current = row[0]
+                patients_seen_list = current.split(",")
+                if username not in patients_seen_list:
+                    new_val = current + "," + username
+                else:
+                    new_val = current
+
+            cursor.execute("UPDATE Users SET clients_seen = ? WHERE username = ?", (new_val, dr_username))
 
             conn.commit()
             conn.close()
-
             return "User added to queue"
 
         except Exception as e:
             print(f"Error fetching dr queue: {e}")
             return
-
-    
-
 test = Utils()
 # test.createDB()
 # test.create_table("Users", "email TEXT PRIMARY KEY, password TEXT")
