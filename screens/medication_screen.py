@@ -87,7 +87,6 @@ class MedicationScreen(wx.Panel):
 
     def build_doctor_view(self):
         response = self.send_to_server(f"GET_MY_PATIENTS_MEDICATION,{self.username}")
-        # format: "patient1:med1,patient2:med2,..."
 
         scroll = wx.ScrolledWindow(self, style=wx.VSCROLL)
         scroll.SetScrollRate(0, 10)
@@ -116,7 +115,6 @@ class MedicationScreen(wx.Panel):
         card.SetBackgroundColour(wx.Colour(255, 255, 255))
         sizer = wx.BoxSizer(wx.HORIZONTAL)
 
-        # Left: patient info
         info_sizer = wx.BoxSizer(wx.VERTICAL)
 
         name_label = wx.StaticText(card, label=patient_name)

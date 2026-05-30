@@ -89,7 +89,6 @@ def tcp_server():
 
                     elif data.startswith("GET_USER_ROLE_BY_USERNAME"):
                         name = data.split(",")[-1].strip()
-                        print(name)
                         user_role = methods.get_role_by_username(name)
                         sock.send(methods.encrypt_message(user_role))
 
@@ -120,9 +119,6 @@ def tcp_server():
                     elif data.startswith("PRESCRIPTION"):
                         patient_username = data.split(",")[-2]
                         patient_prescription = data.split(",")[-1]
-                        print("dsdad", data)
-                        print(patient_username)
-                        print(patient_prescription)
                         patient_prescription_response = methods.add_patient_prescription(patient_username, patient_prescription)
                         sock.send(methods.encrypt_message(patient_prescription_response))
 
@@ -156,6 +152,14 @@ def tcp_server():
                         ret = methods.add_to_dr_queue(add_queue_dr_username, user_username)
                         sock.send(methods.encrypt_message(ret))
 
+                    elif data.startswith("REMOVE_FROM_QUEUE"):
+                        dr_username = data.split(",")[1].strip()
+                        patient_username = data.split(",")[2].strip()
+                        ret = methods.remove_from_dr_queue(dr_username, patient_username)
+                        sock.send(methods.encrypt_message(ret))
+
+
+
                     elif data.startswith("ACCEPT_PATIENT"):
                         patient_username = data.split(",")[-1]
 
@@ -178,6 +182,7 @@ def tcp_server():
                         if patient_username in clients_by_name:
                             clients_by_name[patient_username].send(methods.encrypt_message("KICKED"))
                         sock.send(methods.encrypt_message("OK"))
+
 
                 except Exception as e:
                     print("TCP error:", e)

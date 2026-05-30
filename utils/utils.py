@@ -108,6 +108,32 @@ SELECT password FROM Users WHERE email = '{email}'
             conn.close()
             return email_tup[0]
 
+    def remove_from_dr_queue(self, dr_username, patient_username):
+        try:
+            conn = sqlite3.connect(sqlite_file)
+            cursor = conn.cursor()
+            cursor.execute("SELECT clients_in_line FROM Users WHERE username = ?", (dr_username,))
+            row = cursor.fetchone()
+
+            if row and row[0]:
+                patients = row[0].split(",")
+                new_patients = []
+
+                for patient in patients:
+                    if patient.strip() != patient_username:
+                        new_patients.append(patient.strip())
+
+                new_queue = ",".join(new_patients)
+                cursor.execute("UPDATE Users SET clients_in_line = ? WHERE username = ?", (new_queue, dr_username))
+                conn.commit()
+
+            conn.close()
+            return "OK"
+
+        except Exception as e:
+            print(f"Error removing from queue: {e}")
+            return "ERROR"
+
     def get_verified_by_username(self, username):
         try:
             conn = sqlite3.connect(sqlite_file)

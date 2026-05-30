@@ -205,6 +205,8 @@ class LiveChatPanel(wx.Panel):
 
     def on_next_patient(self, _):
         if self.remote_username:
+            dr_username = globals["user_name"]
+            self.send_to_server(f"REMOVE_FROM_QUEUE,{dr_username},{self.remote_username}")
             self.send_to_server(f"KICK_PATIENT,{self.remote_username}")
         self.remote_ip = None
         self.remote_username = None
@@ -307,6 +309,8 @@ class LiveChatPanel(wx.Panel):
         self.main_sizer.Layout()
 
     def kick_patient(self, patient_name):
+        dr_username = globals["user_name"]
+        self.send_to_server(f"REMOVE_FROM_QUEUE,{dr_username},{patient_name}")
         self.send_to_server(f"KICK_PATIENT,{patient_name}")
         self.remote_ip = None
         self.remote_username = None
