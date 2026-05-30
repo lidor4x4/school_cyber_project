@@ -123,7 +123,6 @@ class ScheduleMeetingPanel(wx.Panel):
 
         card_sizer = wx.BoxSizer(wx.VERTICAL)
 
-        # Teal accent bar at the top
         accent = wx.Panel(card, size=(-1, 4))
         accent.SetBackgroundColour(wx.Colour(15, 110, 86))
         card_sizer.Add(accent, 0, wx.EXPAND)

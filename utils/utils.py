@@ -227,7 +227,6 @@ SELECT password FROM Users WHERE email = '{email}'
             cursor = conn.cursor()
             cursor.execute("SELECT role FROM Users WHERE username = ?",(name,))
             role_tup = cursor.fetchone()
-            print("gay", role_tup[0])
             if role_tup:
                 conn.commit()
                 conn.close()

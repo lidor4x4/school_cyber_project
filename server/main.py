@@ -211,8 +211,6 @@ def udp_relay(port, client_list):
         try:
             data, addr = sock.recvfrom(65535)
         except ConnectionResetError:
-            # Windows sends ICMP port unreachable when client closes UDP socket
-            # This would crash the relay thread — just ignore and continue
             print(f"[WARN port={port}] ConnectionResetError ignored (Windows ICMP)")
             continue
         except Exception as e:
