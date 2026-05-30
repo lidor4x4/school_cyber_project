@@ -223,12 +223,15 @@ def udp_relay(port, client_list, allowed_ips):
 
         data, addr = sock.recvfrom(65535)
 
-        if allowed_ips and len(client_list) >= 2 and addr[0] not in allowed_ips:
+        if allowed_ips and addr[0] not in allowed_ips:
             continue
 
         client_list[:] = [c for c in client_list if c[0] != addr[0]]
         client_list.append(addr)
         print(f"[ADD] {addr} to port {port}")
+
+        if data == b"PING":
+            continue
 
         sender_ip = addr[0].encode()
         length = len(sender_ip).to_bytes(1, 'big')

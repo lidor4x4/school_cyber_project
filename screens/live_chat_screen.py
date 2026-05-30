@@ -263,6 +263,11 @@ class LiveChatPanel(wx.Panel):
         self.remote_ip = response.strip()
         self.remote_username = patient_name
         print("Doctor set remote_ip to:", self.remote_ip)
+        try:
+            self.video_udp.sendto(b"PING", (self.server_ip, VIDEO_PORT))
+            self.audio_udp.sendto(b"PING", (self.server_ip, AUDIO_PORT))
+        except:
+            pass
         wx.CallAfter(self.refresh_queue_ui, "")
 
     def kick_patient(self, patient_name):
