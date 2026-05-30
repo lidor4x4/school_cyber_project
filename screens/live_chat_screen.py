@@ -152,7 +152,6 @@ class LiveChatPanel(wx.Panel):
             self.confirm_rx_btn.Hide()
             self.main_sizer.Add(self.confirm_rx_btn, 0, wx.ALIGN_CENTER | wx.BOTTOM, 10)
 
-            # Current patient label + Next Patient button — hidden until someone accepted
             self.current_patient_label = wx.StaticText(self, label="")
             self.current_patient_label.SetFont(self.bold_font)
             self.current_patient_label.SetForegroundColour(wx.Colour(15, 110, 86))
@@ -205,7 +204,6 @@ class LiveChatPanel(wx.Panel):
         threading.Thread(target=self.receive_audio, daemon=True).start()
 
     def on_next_patient(self, _):
-        """Doctor ends current call and opens queue for next patient."""
         if self.remote_username:
             self.send_to_server(f"KICK_PATIENT,{self.remote_username}")
         self.remote_ip = None
@@ -213,9 +211,7 @@ class LiveChatPanel(wx.Panel):
         self.current_patient_label.Hide()
         self.next_patient_btn.Hide()
         self.queue_toggle_btn.Enable()
-        # Clear remote video to black
-        self.remote_video.SetBitmap(wx.Bitmap(VIDEO_W, VIDEO_H))
-        # Auto open queue
+        self.remote_video.SetBitmap(self.video_off_bmp)
         self.queue_visible = False
         self.toggle_queue(None)
         self.main_sizer.Layout()
@@ -317,27 +313,32 @@ class LiveChatPanel(wx.Panel):
         self.current_patient_label.Hide()
         self.next_patient_btn.Hide()
         self.queue_toggle_btn.Enable()
-        self.remote_video.SetBitmap(wx.Bitmap(VIDEO_W, VIDEO_H))
+        self.remote_video.SetBitmap(self.video_off_bmp)
         self.main_sizer.Layout()
         wx.CallAfter(self.refresh_queue_ui, "")
 
     def handle_go_back(self, _):
-        try:
-            black = np.zeros((VIDEO_H, VIDEO_W, 3), dtype=np.uint8)
-            _, buf = cv2.imencode(".jpg", black)
-            for _ in range(5):
-                self.video_udp.sendto(buf.tobytes(), (self.server_ip, VIDEO_PORT))
-                time.sleep(0.05)
-        except:
-            pass
         self.stop_event.set()
-        self.switch_panel("home")
+        def send_black_then_leave():
+            try:
+                black = np.zeros((VIDEO_H, VIDEO_W, 3), dtype=np.uint8)
+                _, buf = cv2.imencode(".jpg", black)
+                for _ in range(10):
+                    self.video_udp.sendto(buf.tobytes(), (self.server_ip, VIDEO_PORT))
+                    time.sleep(0.04)
+            except:
+                pass
+            try:
+                self.video_udp.close()
+            except:
+                pass
+            wx.CallAfter(self.switch_panel, "home")
+        threading.Thread(target=send_black_then_leave, daemon=True).start()
 
     def on_destroy(self, event):
         self.stop_event.set()
         try:
             self.cap.release()
-            self.video_udp.close()
             self.audio_udp.close()
         except:
             pass
