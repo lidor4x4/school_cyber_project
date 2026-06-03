@@ -3,14 +3,18 @@ import sqlite3
 from cryptography.fernet import Fernet
 import os
 from globals import globals
+from dotenv import load_dotenv
 
 
 class Utils:
     global sqlite_file
     global fernet
-    sqlite_file = r"C:\Users\lidor\Desktop\final_project_final\school_cyber_project\DB\final_project_db.sqlite"
-    
-    FERNET_KEY = b'WmNayxAvMomFuoWRSyEtFaHhptS-nrodlSnZsvHpeoI='
+    sqlite_file = r"C:\Users\Pc2\Desktop\school_cyber_project\DB\final_project_db.sqlite"
+
+    load_dotenv()
+
+    FERNET_KEY = os.getenv("FERNET_KEY")
+    FERNET_KEY = bytes(FERNET_KEY, 'utf-8')
     fernet = Fernet(FERNET_KEY)
 
     def createDB(self):

@@ -44,9 +44,6 @@ class HomePanel(wx.Panel):
 
         self.sizer.Add(wx.StaticLine(self), 0, wx.EXPAND)
 
-        print(self.auth_state)
-        print(self.user_role)
-
         if self.auth_state:
             user_name = globals["user_name"]
             print(user_name)
@@ -62,7 +59,7 @@ class HomePanel(wx.Panel):
                 section_lbl.SetForegroundColour(wx.Colour(155, 155, 155))
                 self.sizer.Add(section_lbl, 0, wx.LEFT | wx.BOTTOM, 16)
 
-                self.live_chat_btn = wx.Button(self, label="Live Chat", size=(220, 44))
+                self.live_chat_btn = wx.Button(self, label="Staff Page", size=(220, 44))
                 self.live_chat_btn.SetBackgroundColour(wx.Colour(225, 245, 238))
                 self.live_chat_btn.SetForegroundColour(wx.Colour(15, 110, 86))
                 self.live_chat_btn.SetFont(self.body_font)
@@ -75,20 +72,6 @@ class HomePanel(wx.Panel):
                 self.verify_dr_btn.SetFont(self.body_font)
                 self.sizer.Add(self.verify_dr_btn, 0, wx.ALL | wx.CENTER, 5)
                 self.verify_dr_btn.Bind(wx.EVT_BUTTON, lambda e: self.switch_panel("verify_doctor_screen"))
-
-                go_schedule_meeting_btn = wx.Button(self, label="Schedule a Meeting", size=(220, 44))
-                go_schedule_meeting_btn.SetBackgroundColour(wx.Colour(238, 237, 254))
-                go_schedule_meeting_btn.SetForegroundColour(wx.Colour(83, 74, 183))
-                go_schedule_meeting_btn.SetFont(self.body_font)
-                self.sizer.Add(go_schedule_meeting_btn, 0, wx.ALL | wx.CENTER, 5)
-                go_schedule_meeting_btn.Bind(wx.EVT_BUTTON, lambda evt: self.switch_panel("schedule_meeting"))
-
-                self.patient_medication = wx.Button(self, label="See your patients medication", size=(220, 44))
-                self.patient_medication.SetBackgroundColour(wx.Colour(225, 245, 238))
-                self.patient_medication.SetForegroundColour(wx.Colour(15, 110, 86))
-                self.patient_medication.SetFont(self.body_font)
-                self.sizer.Add(self.patient_medication, 0, wx.ALL | wx.CENTER, 5)
-                self.patient_medication.Bind(wx.EVT_BUTTON, lambda evt: self.switch_panel("medication_screen"))
 
 
             elif self.user_role == "dr":
