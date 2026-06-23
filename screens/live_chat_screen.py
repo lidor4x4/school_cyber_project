@@ -272,9 +272,8 @@ class LiveChatPanel(wx.Panel):
         if not self.queue_visible:
             return
         
-        # destroy old widgets manually
         for child in self.queue_panel.GetChildren():
-            child.Destroy()
+            child.Hide()
         self.queue_sizer.Clear()
         
         if not response or "The queue is empty" in response:
