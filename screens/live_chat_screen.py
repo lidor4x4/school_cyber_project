@@ -271,7 +271,7 @@ class LiveChatPanel(wx.Panel):
             return
         if not self.queue_visible:
             return
-        self.queue_sizer.Clear(True)
+        self.queue_sizer.Clear()
         if not response or "The queue is empty" in response:
             txt = wx.StaticText(self.queue_panel, label="No online patients in queue.")
             self.queue_sizer.Add(txt, 0, wx.ALIGN_RIGHT | wx.ALL, 10)
