@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 class Utils:
     global sqlite_file
     global fernet
-    sqlite_file = r"C:\Users\Pc2\Desktop\school_cyber_project\DB\final_project_db.sqlite"
+    sqlite_file = r"C:\Users\lidor\Desktop\fianl_final_cober_project\school_cyber_project\DB\final_project_db.sqlite"
 
     load_dotenv()
 
@@ -260,6 +260,25 @@ SELECT password FROM Users WHERE email = '{email}'
 
         except Exception as e :
             return f"{e}"
+
+
+
+    def disable_dr_access(self, username):
+        """Sets verified = 0 for the given doctor, blocking their login."""
+        try:
+            conn = sqlite3.connect(sqlite_file)
+            cursor = conn.cursor()
+            cursor.execute(
+                "UPDATE Users SET verified = 0 WHERE username = ? AND role = 'dr'",
+                (username,)
+            )
+            conn.commit()
+            conn.close()
+            return "OK"
+        except Exception as e:
+            print(f"Error disabling dr access: {e}")
+            return "ERROR"
+ 
 
     def get_patient_medication(self, username):
         try:

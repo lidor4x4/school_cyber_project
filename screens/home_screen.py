@@ -64,7 +64,7 @@ class HomePanel(wx.Panel):
                 self.live_chat_btn.SetForegroundColour(wx.Colour(15, 110, 86))
                 self.live_chat_btn.SetFont(self.body_font)
                 self.sizer.Add(self.live_chat_btn, 0, wx.ALL | wx.CENTER, 5)
-                self.live_chat_btn.Bind(wx.EVT_BUTTON, lambda e: self.switch_panel("live_chat"))
+                self.live_chat_btn.Bind(wx.EVT_BUTTON, lambda e: self.switch_panel("staff_page"))
 
                 self.verify_dr_btn = wx.Button(self, label="Verify Doctors", size=(220, 44))
                 self.verify_dr_btn.SetBackgroundColour(wx.Colour(230, 241, 251))

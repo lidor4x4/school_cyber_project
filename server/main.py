@@ -152,6 +152,11 @@ def tcp_server():
                         ret = methods.add_to_dr_queue(add_queue_dr_username, user_username)
                         sock.send(methods.encrypt_message(ret))
 
+                    elif data.startswith("DISABLE_DR_ACCESS"):
+                        dr_username = data.split(",")[1].strip()
+                        result = methods.disable_dr_access(dr_username)
+                        sock.send(methods.encrypt_message(result))
+
                     elif data.startswith("REMOVE_FROM_QUEUE"):
                         dr_username = data.split(",")[1].strip()
                         patient_username = data.split(",")[2].strip()

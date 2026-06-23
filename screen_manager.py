@@ -10,7 +10,7 @@ from screens.verify_doctor_screen import VerifyDoctorPanel
 from screens.waiting_room_screen import WaitingRoomPanel
 from screens.schedule_meeting import ScheduleMeetingPanel
 from screens.medication_screen import MedicationScreen
-
+from screens.staff_screen import StaffPanel
 class MainFrame(wx.Frame):
     def __init__(self):
         super().__init__(None, title="My App", size=(1280, 720))
@@ -48,6 +48,8 @@ class MainFrame(wx.Frame):
             self.current_panel = ScheduleMeetingPanel(self, self.switch_panel, self.send_to_server)
         elif name == "medication_screen":
             self.current_panel = MedicationScreen(self, self.switch_panel, self.send_to_server)
+        elif name == "staff_page":
+            self.current_panel = StaffPanel(self, self.switch_panel, self.send_to_server)
 
         self.Layout()
 
