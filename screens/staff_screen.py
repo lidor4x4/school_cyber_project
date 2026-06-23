@@ -14,9 +14,9 @@ class StaffPanel(wx.Panel):
 
         self.SetBackgroundColour(wx.Colour(245, 245, 242))
 
-        self.title_font     = wx.Font(22, wx.DEFAULT, wx.NORMAL, wx.BOLD,   False, "Georgia")
-        self.body_font      = wx.Font(13, wx.DEFAULT, wx.NORMAL, wx.NORMAL, False, "Arial")
-        self.label_font     = wx.Font(11, wx.DEFAULT, wx.NORMAL, wx.NORMAL, False, "Arial")
+        self.title_font = wx.Font(22, wx.DEFAULT, wx.NORMAL, wx.BOLD,   False, "Georgia")
+        self.body_font = wx.Font(13, wx.DEFAULT, wx.NORMAL, wx.NORMAL, False, "Arial")
+        self.label_font = wx.Font(11, wx.DEFAULT, wx.NORMAL, wx.NORMAL, False, "Arial")
         self.card_title_font = wx.Font(13, wx.DEFAULT, wx.NORMAL, wx.BOLD,  False, "Arial")
         self.card_body_font  = wx.Font(11, wx.DEFAULT, wx.NORMAL, wx.NORMAL, False, "Arial")
 
@@ -52,12 +52,6 @@ class StaffPanel(wx.Panel):
         page_title.SetFont(self.title_font)
         page_title.SetForegroundColour(wx.Colour(26, 26, 26))
         top_row.Add(page_title, 1, wx.ALIGN_CENTER_VERTICAL)
-
-        refresh_btn = wx.Button(self, label="⟳ Refresh", size=(100, 32))
-        refresh_btn.SetFont(self.label_font)
-        refresh_btn.SetForegroundColour(wx.Colour(107, 107, 107))
-        refresh_btn.Bind(wx.EVT_BUTTON, self.on_refresh)
-        top_row.Add(refresh_btn, 0, wx.ALIGN_CENTER_VERTICAL)
 
         self.sizer.Add(top_row, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 20)
         self.sizer.AddSpacer(6)
@@ -207,13 +201,6 @@ class StaffPanel(wx.Panel):
                 wx.MessageBox(f"Error: {e}", "Error", wx.OK | wx.ICON_ERROR)
 
         confirm.Destroy()
-
-    def on_refresh(self, event):
-        self.Freeze()
-        self.grid_sizer.Clear(delete_windows=True)
-        self.doctor_cards.clear()
-        self.Thaw()
-        threading.Thread(target=self.load_staff, daemon=True).start()
 
     def on_card_hover(self, card, hover):
         card.SetBackgroundColour(wx.Colour(255, 240, 240) if hover else wx.Colour(255, 255, 255))

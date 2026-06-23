@@ -429,12 +429,15 @@ SELECT password FROM Users WHERE email = '{email}'
 
             cursor.execute("SELECT clients_seen FROM Users WHERE username = ?", (dr_username,))
             row = cursor.fetchone()
+            print(f"1, {row} {username}")
 
             if row[0] is None or row[0] == "":
                 new_val = username
+                print(f"2, {row[0]} {username}")
             else:
                 current = row[0]
                 patients_seen_list = current.split(",")
+                print(f"3, {patients_seen_list} {username}")
                 if username not in patients_seen_list:
                     new_val = current + "," + username
                 else:

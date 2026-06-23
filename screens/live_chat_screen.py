@@ -213,7 +213,6 @@ class LiveChatPanel(wx.Panel):
         self.next_patient_btn.Hide()
         self.queue_toggle_btn.Enable()
         self.remote_video.SetBitmap(self.video_off_bmp)
-        # just reload if queue is open, don't toggle
         if self.queue_visible and not self._queue_loading:
             self._queue_loading = True
             threading.Thread(target=self.load_queue, daemon=True).start()
