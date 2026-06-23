@@ -213,9 +213,12 @@ class LiveChatPanel(wx.Panel):
         self.next_patient_btn.Hide()
         self.queue_toggle_btn.Enable()
         self.remote_video.SetBitmap(self.video_off_bmp)
-        self.queue_visible = False
-        self.toggle_queue(None)
+        # just reload if queue is open, don't toggle
+        if self.queue_visible and not self._queue_loading:
+            self._queue_loading = True
+            threading.Thread(target=self.load_queue, daemon=True).start()
         self.main_sizer.Layout()
+
     def toggle_prescription_box(self, _):
         if self.prescription_box.IsShown():
             self.prescription_box.Hide()
@@ -268,7 +271,7 @@ class LiveChatPanel(wx.Panel):
             return
         if not self.queue_visible:
             return
-        self.queue_sizer.Clear()
+        self.queue_sizer.Clear(True)
         if not response or "The queue is empty" in response:
             txt = wx.StaticText(self.queue_panel, label="No online patients in queue.")
             self.queue_sizer.Add(txt, 0, wx.ALIGN_RIGHT | wx.ALL, 10)

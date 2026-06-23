@@ -15,8 +15,8 @@ class MainFrame(wx.Frame):
     def __init__(self):
         super().__init__(None, title="My App", size=(1280, 720))
 
-        # self.HOST = "192.168.31.73"
-        self.HOST = "localhost"
+        self.HOST = "192.168.31.73"
+        #self.HOST = "localhost"
         self.PORT = 12345
 
         self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
