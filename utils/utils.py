@@ -114,7 +114,6 @@ SELECT password FROM Users WHERE email = '{email}'
 
     def remove_from_dr_queue(self, dr_username, patient_username):
         try:
-            print(f"[REMOVE] dr={repr(dr_username)} patient={repr(patient_username)}")
             conn = sqlite3.connect(sqlite_file)
             cursor = conn.cursor()
             cursor.execute("SELECT clients_in_line FROM Users WHERE username = ?", (dr_username,))

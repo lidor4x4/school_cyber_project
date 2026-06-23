@@ -271,7 +271,12 @@ class LiveChatPanel(wx.Panel):
             return
         if not self.queue_visible:
             return
+        
+        # destroy old widgets manually
+        for child in self.queue_panel.GetChildren():
+            child.Destroy()
         self.queue_sizer.Clear()
+        
         if not response or "The queue is empty" in response:
             txt = wx.StaticText(self.queue_panel, label="No online patients in queue.")
             self.queue_sizer.Add(txt, 0, wx.ALIGN_RIGHT | wx.ALL, 10)
@@ -279,9 +284,10 @@ class LiveChatPanel(wx.Panel):
             patients = response.split(",")
             for patient in patients:
                 self.add_patient_row(patient.strip())
+        
         self.queue_panel.Layout()
-        self.main_sizer.Layout()        
-
+        self.main_sizer.Layout()
+        
     def add_patient_row(self, patient_name):
         row = wx.BoxSizer(wx.HORIZONTAL)
         row.AddStretchSpacer()
