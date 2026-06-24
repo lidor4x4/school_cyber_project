@@ -176,6 +176,11 @@ class SignupPanel(wx.Panel):
             self.password_error.SetLabel("Password must be at least 8 characters long")
             errors = True
 
+        elif not re.search(r'[A-Z]', password) or not re.search(r'[a-z]', password) or not re.search(r'[^a-zA-Z0-9]', password):
+            self.password_error.SetLabel("Password must contain uppercase, lowercase, and a special character")
+            errors = True
+
+
         if password != confirm_password:
             self.confirm_password_error.SetLabel("The two passwords should be the same.")
             errors = True
